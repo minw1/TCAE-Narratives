@@ -83,7 +83,7 @@ if __name__ == "__main__":
     
     if str(args.exp_dir) == 'auto':
         print('sec')
-        args.exp_dir =("/home/wsm32/palmer_scratch/wsm_thesis_scratch/narratives/models")
+        args.exp_dir =("/home/wsm32/project/wsm_thesis_scratch/narratives/models")
 
     args.exp_dir = pathlib.Path(args.exp_dir)
     print('save logs to {}'.format(args.exp_dir))

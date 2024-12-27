@@ -58,7 +58,7 @@ def fix_cases(l):
             final.append(l[i])
     return final
 
-def gen_pos_align(task, gentle_dir="/home/wsm32/palmer_scratch/wsm_thesis_scratch/narratives/stimuli/gentle/"):
+def gen_pos_align(task, gentle_dir="/home/wsm32/project/wsm_thesis_scratch/narratives/stimuli/gentle/"):
     if spacy.prefer_gpu():
         print("Running on GPU")
     else:

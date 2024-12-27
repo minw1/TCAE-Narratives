@@ -8,7 +8,7 @@ pieman_doubleruns = ["sub-001", "sub-002", "sub-003", "sub-004", "sub-005", "sub
 
 def get_vox(task, subject, space):
     
-    base_dir = '/home/wsm32/palmer_scratch/wsm_thesis_scratch/narratives/'
+    base_dir = '/home/wsm32/project/wsm_thesis_scratch/narratives/'
     clean_dir = join(base_dir, 'derivatives', 'afni-smooth', subject, 'func')
     run = ""
     if task == "pieman" and subject in pieman_doubleruns:

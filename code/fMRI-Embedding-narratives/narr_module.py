@@ -108,9 +108,9 @@ class CT_Narrative_Dataset(torch.utils.data.Dataset):
         self.trs_per_shot = trs_per_shot
         self.shots_per_subj = math.floor((end_tr - start_tr)/trs_per_shot)
         
-        df = pd.read_csv('/home/wsm32/palmer_scratch/wsm_thesis_scratch/narratives/participants.tsv', sep='\t')
+        df = pd.read_csv('/home/wsm32/project/wsm_thesis_scratch/narratives/participants.tsv', sep='\t')
         
-        with open("/home/wsm32/palmer_scratch/wsm_thesis_scratch/narratives/code/scan_exclude.json","r") as file:
+        with open("/home/wsm32/project/wsm_thesis_scratch/narratives/code/scan_exclude.json","r") as file:
             exclusion_dict = json.load(file)
         contains_task = df['task'].apply(lambda x: self.task in x.split(','))
         to_exclude = df["participant_id"].isin(exclusion_dict[task].keys())

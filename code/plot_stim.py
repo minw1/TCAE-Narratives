@@ -8,7 +8,7 @@ import seaborn as sns
 from gifti_io import read_gifti
 
 task = 'pieman'
-base_dir = '/home/wsm32/palmer_scratch/wsm_thesis_scratch/narratives/'
+base_dir = '/home/wsm32/project/wsm_thesis_scratch/narratives/'
 stim_dir = join(base_dir, 'stimuli')
 stim_fn = join(stim_dir, f'{task}_audio.wav')
 

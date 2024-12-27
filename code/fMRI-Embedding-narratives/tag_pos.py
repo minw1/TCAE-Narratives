@@ -39,8 +39,8 @@ def clean_string(input_string):
 def spacy_merge(doc):
     out = []
     for w in doc:
-        auto_merge_conditions = [("nt" == w.text)]
-        auto_sep_conditions = [("clock" in w.text)]
+        auto_merge_conditions = ["nt" == w.text]
+        auto_sep_conditions = ["clock" in w.text, "them'll" in w.text, "girl's" in w.text, "L’Amour" in w.text]
         if (contains_apostrophe(w.text) or any (auto_merge_conditions)) and not any(auto_sep_conditions):
             assert(len(out)>0)
             out[len(out)-1]["word"] = out[len(out)-1]["word"] + w.text
@@ -60,7 +60,7 @@ def fix_cases(l):
             final.append(l[i])
     return final
 
-def gen_pos_align(task, gentle_dir="/home/wsm32/palmer_scratch/wsm_thesis_scratch/narratives/stimuli/gentle/"):
+def gen_pos_align(task, gentle_dir="/home/wsm32/project/wsm_thesis_scratch/narratives/stimuli/gentle/"):
     if spacy.prefer_gpu():
         print("Running on GPU")
     else:
@@ -112,7 +112,7 @@ def gen_pos_align(task, gentle_dir="/home/wsm32/palmer_scratch/wsm_thesis_scratc
         json.dump(out, out_file, indent=4)
     return 1
 
-for t in ["pieman","tunnel","lucy","prettymouth","milkyway","slumlordreach","notthefallintact","21styear","bronx","black","forgot"]:
-#for t in ["tunnel"]:
+for t in ["pieman","tunnel","lucy","prettymouth","milkywayoriginal","slumlordreach","notthefallintact","21styear","bronx","black","forgot"]:
+#for t in ["prettymouth"]:
     gen_pos_align(t)
 

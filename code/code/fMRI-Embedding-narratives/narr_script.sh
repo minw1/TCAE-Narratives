@@ -11,4 +11,4 @@
 module load CUDA
 module load cuDNN
 source activate tcae
-python narr_main.py --num_epochs 100 --exp_dir auto --data_parallel --report_period 10 --early_stop 20 --lr 0.01 --checkpoint /home/wsm32/palmer_scratch/wsm_thesis_scratch/narratives/models/model.pt
+python narr_main.py --num_epochs 100 --exp_dir auto --data_parallel --report_period 10 --early_stop 20 --lr 0.01 --checkpoint /home/wsm32/project/wsm_thesis_scratch/narratives/models/model.pt

@@ -5,7 +5,7 @@ def extract_s(d):
     return d["start"]
 def extract_e(d):
     return d["end"]
-def get_pos_seq(task, tr_start, tr_end, tr_dur=1.5, buffer_dur=1.0, pos_dir="/home/wsm32/palmer_scratch/wsm_thesis_scratch/narratives/stimuli/gentle/pos"):
+def get_pos_seq(task, tr_start, tr_end, tr_dur=1.5, buffer_dur=1.0, pos_dir="/home/wsm32/project/wsm_thesis_scratch/narratives/stimuli/gentle/pos"):
     start_time = tr_start * tr_dur + buffer_dur
     end_time = tr_end * tr_dur - buffer_dur
     file_path = join(pos_dir,task,"pos_align.json")
