@@ -1,0 +1,82 @@
+INFO:train_frame:Namespace(model='TCAE', task='pieman', layers=1, d_vol=81924, d_emd1=256, d_emd2=128, d_latent=64, d_ff=512, n_head=4, dropout=0.0, num_class=3, mid_planes=32, pred_loss_type='cross_entropy', predict=False, batch_size=16, num_epochs=100, report_period=10, loss_type='mse', lr=0.01, lr_step_size=30, lr_gamma=0.5, weight_decay=0.0, early_stop=20, num_workers=2, device='cuda', data_parallel=True, exp_dir=PosixPath('/home/wsm32/palmer_scratch/wsm_thesis_scratch/narratives/models'), save_model=True, save_embedding=True, checkpoint='/home/wsm32/palmer_scratch/wsm_thesis_scratch/narratives/models/model.pt', seed=0, test=False, resume=True, inference_dir=PosixPath('/home/wsm32/palmer_scratch/wsm_thesis_scratch/narratives/models/inference'))
+INFO:train_frame:DataParallel(
+  (module): Standard_Autoencoder(
+    (encoder): Encoder(
+      (en_emd): Linear(in_features=81924, out_features=64, bias=True)
+      (pos_encoder): PositionalEncoding(
+        (dropout): Dropout(p=0.0, inplace=False)
+      )
+      (layers): ModuleList(
+        (0): SelfAttentionLayer(
+          (self_attn): MultiHeadedAttention(
+            (linears): ModuleList(
+              (0-3): 4 x Linear(in_features=64, out_features=64, bias=True)
+            )
+            (dropout): Dropout(p=0.1, inplace=False)
+          )
+          (feed_forward): PositionwiseFeedForward(
+            (w_1): Linear(in_features=64, out_features=512, bias=True)
+            (w_2): Linear(in_features=512, out_features=64, bias=True)
+            (dropout): Dropout(p=0.0, inplace=False)
+          )
+          (sublayer): ModuleList(
+            (0-1): 2 x ResidualConnection(
+              (norm): LayerNorm()
+              (dropout): Dropout(p=0.0, inplace=False)
+            )
+          )
+        )
+      )
+      (norm): LayerNorm()
+    )
+    (decoder): Decoder(
+      (de_emd): Linear(in_features=64, out_features=81924, bias=True)
+      (layers): ModuleList(
+        (0): SelfAttentionLayer(
+          (self_attn): MultiHeadedAttention(
+            (linears): ModuleList(
+              (0-3): 4 x Linear(in_features=64, out_features=64, bias=True)
+            )
+            (dropout): Dropout(p=0.1, inplace=False)
+          )
+          (feed_forward): PositionwiseFeedForward(
+            (w_1): Linear(in_features=64, out_features=512, bias=True)
+            (w_2): Linear(in_features=512, out_features=64, bias=True)
+            (dropout): Dropout(p=0.0, inplace=False)
+          )
+          (sublayer): ModuleList(
+            (0-1): 2 x ResidualConnection(
+              (norm): LayerNorm()
+              (dropout): Dropout(p=0.0, inplace=False)
+            )
+          )
+        )
+      )
+      (norm): LayerNorm()
+    )
+  )
+)
+/vast/palmer/scratch/frank/wsm32/wsm_thesis_scratch/narratives/code/fMRI-Embedding-narratives/train_frame.py:295: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  checkpoint_tmp = torch.load(self.options.checkpoint)
+sec
+save logs to /home/wsm32/palmer_scratch/wsm_thesis_scratch/narratives/models
+Load checkpoint 52 with loss 5.400826692581177
+/home/wsm32/.conda/envs/tcae/lib/python3.12/site-packages/torch/nn/modules/linear.py:125: UserWarning: Attempting to run cuBLAS, but there was no current CUDA context! Attempting to set the primary context... (Triggered internally at /opt/conda/conda-bld/pytorch_1729647378361/work/aten/src/ATen/cuda/CublasHandlePool.cpp:135.)
+  return F.linear(input, self.weight, self.bias)
+Epoch[53][0/109]	Time 0.000 (0.000)	Loss 4.7663 (4.7663)
+Epoch[53][10/109]	Time 0.311 (0.133)	Loss 5.7425 (5.5061)
+Epoch[53][20/109]	Time 0.226 (0.104)	Loss 5.7064 (5.8930)
+Epoch[53][30/109]	Time 0.192 (0.114)	Loss 5.6409 (5.6200)
+Epoch[53][40/109]	Time 0.176 (0.106)	Loss 5.6245 (6.0390)
+Epoch[53][50/109]	Time 0.165 (0.101)	Loss 5.5536 (5.1510)
+Epoch[53][60/109]	Time 0.157 (0.108)	Loss 5.5566 (5.0086)
+Epoch[53][70/109]	Time 0.152 (0.118)	Loss 5.5557 (5.7055)
+Epoch[53][80/109]	Time 0.148 (0.132)	Loss 5.5687 (5.7000)
+Epoch[53][90/109]	Time 0.145 (0.116)	Loss 5.5677 (6.1017)
+Epoch[53][100/109]	Time 0.144 (0.110)	Loss 5.5704 (5.8119)
+Train Time 720.4264478906989 	 Train Loss 5.597080541313241
+INFO:train_frame:Epoch = [ 54/100] Train_Loss = 5.597 Val_Loss = 5.404 Train_Time = 720.4265s Val_Time = 94.3942s
+Val Time 94.39419285580516 	 Val Loss 5.4036697660173685
+Best epoch:  0
+Waiting:  53
+######### Early Stop #########

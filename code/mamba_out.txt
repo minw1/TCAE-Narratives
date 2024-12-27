@@ -1,0 +1,12 @@
+
+CondaError: Run 'conda init' before 'conda deactivate'
+
+Retrieving notices: ...working... done
+Channels:
+ - defaults
+ - conda-forge
+ - brainiak
+ - bioconda
+Platform: linux-64
+Collecting package metadata (repodata.json): ...working... done
+Solving environment: ...working... slurmstepd: error: *** JOB 6508082 ON r815u35n04 CANCELLED AT 2024-10-14T17:44:31 ***
