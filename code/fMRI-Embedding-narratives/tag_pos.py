@@ -36,17 +36,35 @@ def clean_string(input_string):
     return re.sub(r'[^a-zA-Z0-9]', '', input_string)
 
 
-def spacy_merge(doc):
+def spacy_merge(doc, task):
     out = []
     for w in doc:
         auto_merge_conditions = ["nt" == w.text]
-        auto_sep_conditions = ["clock" in w.text, "them'll" in w.text, "girl's" in w.text, "L’Amour" in w.text]
+        auto_sep_conditions = ["clock" in w.text, "them'll" in w.text, "girl's" in w.text, "L’Amour" in w.text, "y’" == w.text]
+        if len(out) > 0:
+            auto_merge_conditions += ["y’" == out[-1]["word"]]
+            
+            if task == "21styear" or task == "forgot":
+                auto_merge_conditions += [("not" == w.text) and ("can" == out[-1]["word"])]
+            if task == "black" or task == "forgot":
+                auto_merge_conditions += [("na" == w.text) and ("gon" == out[-1]["word"])]
+
         if (contains_apostrophe(w.text) or any (auto_merge_conditions)) and not any(auto_sep_conditions):
             assert(len(out)>0)
             out[len(out)-1]["word"] = out[len(out)-1]["word"] + w.text
             out[len(out)-1]["pos"] = out[len(out)-1]["pos"] + "&" + w.pos_
         else:
-            out.append({"word":w.text,"pos":w.pos_})
+            is_time = re.search(r'\d+:\d+', w.text) is not None
+            if is_time:
+                toks = w.text.split(":")
+                out.append({"word":toks[0],"pos":w.pos_})
+                out.append({"word":toks[1],"pos":""})
+            elif w.text == "a.m.":
+                out.append({"word":"a","pos":w.pos_})
+                out.append({"word":"m","pos":""})
+
+            else:
+                out.append({"word":w.text,"pos":w.pos_})
     return out
 
 def fix_cases(l):
@@ -76,7 +94,7 @@ def gen_pos_align(task, gentle_dir="/home/wsm32/project/wsm_thesis_scratch/narra
         gentle = json.load(alignfile)['words']
     
     doc = nlp(text)
-    merged = spacy_merge(doc)
+    merged = spacy_merge(doc, task)
     
     for w in merged:
         print(w["word"],w["pos"])
@@ -113,6 +131,6 @@ def gen_pos_align(task, gentle_dir="/home/wsm32/project/wsm_thesis_scratch/narra
     return 1
 
 for t in ["pieman","tunnel","lucy","prettymouth","milkywayoriginal","slumlordreach","notthefallintact","21styear","bronx","black","forgot"]:
-#for t in ["prettymouth"]:
+#for t in ["21styear","bronx","black","forgot"]:
     gen_pos_align(t)
 

@@ -1,5 +1,0 @@
-sec
-save logs to /home/wsm32/project/wsm_thesis_scratch/narratives/models
-&&&&&&&_position_&&&&&&&
-torch.Size([10, 64])
-torch.Size([1, 2000, 64])
