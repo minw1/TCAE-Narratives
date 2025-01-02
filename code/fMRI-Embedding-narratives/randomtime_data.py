@@ -11,6 +11,7 @@ import pandas as pd
 from gen_vox import get_vox
 from trs_to_pos import get_pos_seq
 import json
+from os.path import join
 
 class RT_Narrative_Data_Module(): #for random time splits
 
@@ -20,11 +21,12 @@ class RT_Narrative_Data_Module(): #for random time splits
         batch_size: int = 16,
         transform: Optional[Callable] = None,
         num_workers: int = 2,
-        train_val_test: tuple = (0.8, 0.1, 0.1), #
+        train_val_test: tuple = (0.8, 0.1, 0.1), #proportion of dataset assinged to train, validation, test
         segment_length: int = 10, #trs per segment
         delay: float = 4.5,
         tr_duration = 1.5,
-        random_seed = 0
+        random_seed = 0,
+        max_length = 100
         ):
         
         assert(np.sum(train_val_test) == 1)
@@ -37,6 +39,8 @@ class RT_Narrative_Data_Module(): #for random time splits
         self.segment_length = segment_length
         self.delay = delay
         self.tr_duration = tr_duration
+        self.random_seed = random_seed
+        self.max_length = max_length
 
         #Setup task data Dict
         self.task_data = {}
@@ -46,14 +50,14 @@ class RT_Narrative_Data_Module(): #for random time splits
         with open("/home/wsm32/project/wsm_thesis_scratch/narratives/code/fMRI-Embedding-narratives/duration.json","r") as file2:
             duration_dict = json.load(file2)
 
-        rng = np.random.default_rng(seed)
+        rng = np.random.default_rng(random_seed)
         for task in task_list:
-            contains_task = df['task'].apply(lambda x: self.task in x.split(','))
+            contains_task = df['task'].apply(lambda x: task in x.split(','))
             to_exclude = df["participant_id"].isin(exclusion_dict[task].keys())
             valid_ids = df["participant_id"][contains_task & (~to_exclude)]
             num_subj = df["participant_id"][contains_task & (~to_exclude)].shape[0]
 
-            num_segs = math.floor((duration_dict[task][1] - duration_dict[task][0]) / (tr_duration * segement_length))
+            num_segs = math.floor((duration_dict[task][1] - duration_dict[task][0]) / (tr_duration * segment_length))
             num_train = math.floor(train_val_test[0] * num_segs)
             num_val = math.floor(train_val_test[1] * num_segs)
             num_test = num_segs - num_train - num_val
@@ -124,9 +128,10 @@ class RT_Narrative_Data_Module(): #for random time splits
         test_loaders = []
 
         for task in self.task_list:
-            train_loaders.append(RT_Narrative_Dataset(task, self.task_data[task], self.segement_length, self.train_val_test, self.delay, self.tr_duration, 0, transform=self.transform))
-            val_loaders.append(RT_Narrative_Dataset(task, self.task_data[task], self.segement_length, self.train_val_test, self.delay, self.tr_duration, 1, transform=self.transform))
-            test_loaders.append(RT_Narrative_Dataset(task,self.task_data[task], self.segement_length, self.train_val_test, self.delay, self.tr_duration, 2, transform=self.transform))
+            print("creating " + task + " loaders...")
+            train_loaders.append(RT_Narrative_Dataset(task, self.task_data[task], self.segment_length, self.train_val_test, self.delay, self.tr_duration, 0, self.max_length, transform=self.transform))
+            val_loaders.append(RT_Narrative_Dataset(task, self.task_data[task], self.segment_length, self.train_val_test, self.delay, self.tr_duration, 1, self.max_length, transform=self.transform))
+            test_loaders.append(RT_Narrative_Dataset(task,self.task_data[task], self.segment_length, self.train_val_test, self.delay, self.tr_duration, 2, self.max_length, transform=self.transform))
         
         return ConcatDataset(train_loaders), ConcatDataset(val_loaders), ConcatDataset(test_loaders)
 
@@ -145,6 +150,7 @@ class RT_Narrative_Dataset(torch.utils.data.Dataset):
         delay,
         tr_duration,
         which_type,
+        max_length,
         transform: Optional[Callable] = None,
     ):
         """
@@ -160,23 +166,26 @@ class RT_Narrative_Dataset(torch.utils.data.Dataset):
         self.task = task
         self.task_data = task_data
         self.transform = transform
-        self.segment_length = segement_length
+        self.segment_length = segment_length
         self.train_val_test = train_val_test
         self.delay = delay
         self.tr_duration = tr_duration
         self.which_type = which_type
         self.segs_per_sub = np.sum(task_data["pattern"] == which_type) # how many segments per subject (in this partition)
         self.num_ex =  self.segs_per_sub * task_data["num_subj"] # how many examples for this dataset
-        self.these_seg_ids = np.where(task_data["pattern"] == which_type)
+        self.these_seg_ids = np.where(task_data["pattern"] == which_type)[0]
+        self.max_length = max_length
 
-        self.signals = []
-        for i in self.task_data["num_subj"]:
-            s = get_vox(task, task_data["valid_ids"].iloc[i],"fsaverage6")
-            signals.append(s)
+        #self.signals = []
+        #for i in range(self.task_data["num_subj"]):
+        #    s = get_vox(task, task_data["valid_ids"].iloc[i],"fsaverage6")
+        #    self.signals.append(s)
+        
+        print("Task Loader, #" + str(which_type) + " has " + str(task_data["num_subj"]) + "subjects. And "+str(self.segs_per_sub)+" segements.")
         
     def seg_idx_to_trs(self, seg_idx): #takes a segment index, converts it to the relevant trs
-        tr_offset = self.task_data["start_time"] / self.tr_duration
-        return (seg_idx * self.segement_length + tr_offset, (seg_idx + 1) * self.segement_length + tr_offset)
+        tr_offset = math.floor(self.task_data["start_time"] / self.tr_duration)
+        return (seg_idx * self.segment_length + tr_offset, (seg_idx + 1) * self.segment_length + tr_offset)
 
 
         
@@ -184,15 +193,27 @@ class RT_Narrative_Dataset(torch.utils.data.Dataset):
         return self.num_ex
 
     def __getitem__(self, i: int):
+
+        #print(f"i : {i}, num_ex : {self.num_ex}, segs : {self.segs_per_sub}")
+        #print(f"these_seg_ids:{self.these_seg_ids}")
+        #print(f"that length:{len(self.these_seg_ids)}")
         
         subj_i = math.floor(i/self.segs_per_sub)
         seg_i = i % self.segs_per_sub
-        tr_span = seg_idx_to_trs(self.these_seg_ids[seg_i])
-        signal = self.signals[subj_i][tr_span[0]: tr_span[1], :]
+        tr_span = self.seg_idx_to_trs(self.these_seg_ids[seg_i])
+        s = get_vox(self.task, self.task_data["valid_ids"].iloc[subj_i],"fsaverage6")
+        signal = s[tr_span[0]: tr_span[1], :]
 
         if self.transform is None:
             sample = signal
         else:
             sample = self.transform(signal)
 
-        return torch.from_numpy(sample), get_pos_seq(self.task_data["align"],tr_span[0],tr_span[1],self.task_data["stim_offset"],tr_dur=self.tr_duration, delay=self.delay)
+        print(f"Task: {self.task}\n P_start: {tr_span[0]*self.tr_duration - self.delay - self.task_data["stim_offset"]} \n P_end: {tr_span[1]*self.tr_duration - self.delay - self.task_data["stim_offset"]}")
+
+        pos_seq = get_pos_seq(self.task_data["align"],tr_span[0],tr_span[1],self.task_data["stim_offset"],tr_dur=self.tr_duration, delay=self.delay)
+        print(pos_seq)
+        assert(len(pos_seq) < self.max_length)
+        label = np.full(self.max_length, 100)
+        label[:len(pos_seq)] = pos_seq
+        return torch.from_numpy(sample), label

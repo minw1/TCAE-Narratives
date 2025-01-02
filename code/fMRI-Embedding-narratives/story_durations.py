@@ -8,7 +8,7 @@ data = {
     "lucy" : (3, 545, 3),
     "prettymouth" : (21, 697, 0),
     "milkywayoriginal": (21, 425, 0),
-    "slumlord" : (29.5, 932.5, 4.5),
+    "slumlordreach" : (29.5, 932.5, 4.5),
     "notthefallintact" : (29.5, 576.5, 4.5),
     "21styear" : (21, 3599, 0),
     "bronx" : (27, 27 + 536, 12),
