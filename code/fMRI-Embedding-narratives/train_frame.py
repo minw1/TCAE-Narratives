@@ -11,14 +11,15 @@ from predictor import Brain_State_Predictor
 from utils import AverageMeter,accuracy
 from torchmetrics import Accuracy, Precision, Recall, F1Score, AUROC
 from pos_decoder import POS_predictor
+from utils import pos_tags
 
 vae_loss = vae_loss_function()
 
 def build_optimizer(lr, weight_decay, model_parameters, type='adam'):
     if type == 'adam':
-        optimizer = torch.optim.Adam(model_parameters, lr, weight_decay=weight_decay)
+        optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model_parameters), lr, weight_decay=weight_decay)
     elif type == 'sgd':
-        optimizer = torch.optim.SGD(model_parameters, lr, weight_decay=weight_decay)
+        optimizer = torch.optim.SGD(filter(lambda p: p.requires_grad, model_parameters), lr, weight_decay=weight_decay)
     else:
         raise NotImplementedError()
 
@@ -102,7 +103,8 @@ def build_predictor(options):
     return model
 
 def build_pos_predictor(options):
-    model = POS_predictor(options.l_vocab,d_mem=options.d_latent, d_dec_latent=options.d_latent, d_dec_ff=options.d_dec_ff, dec_dropout=options.dec_dropout, n_dec_head=options.n_dec_head, n_dec_blocks=options.n_dec_blocks, d_vol=options.d_vol, d_enc_ff=options.d_ff,n_enc_head=options.n_head,n_enc_blocks=options.layers,enc_dropout=options.dropout)
+    model = POS_predictor(options.l_vocab, d_latent=options.d_latent, d_dec_ff=options.d_dec_ff, dec_dropout=options.dec_dropout, n_dec_head=options.n_dec_head, n_dec_blocks=options.n_dec_blocks, d_vol=options.d_vol, d_enc_ff=options.d_ff,n_enc_head=options.n_head,n_enc_blocks=options.layers,enc_dropout=options.dropout)
+    model.initialize_encoder_weights(options.checkpoint_file)
     return model
 
 class Trainer:
@@ -300,6 +302,7 @@ class Trainer:
         checkpoint_tmp = torch.load(self.options.checkpoint)
         print("Load checkpoint {} with loss {}".format(checkpoint_tmp['epoch'], checkpoint_tmp['best_val_loss']))
         self.best_val_loss = checkpoint_tmp['best_val_loss']
+        self.best_epoch = checkpoint_tmp.get('best_epoch', 0)
         self.start_epoch = checkpoint_tmp['epoch'] + 1
 
         self.model.load_state_dict(checkpoint_tmp['model'])
@@ -316,7 +319,8 @@ class Trainer:
                 'model': self.model.state_dict(),
                 'optimizer': self.optimizer.state_dict(),
                 'best_val_loss': self.best_val_loss,
-                'exp_dir': exp_dir
+                'exp_dir': exp_dir,
+                'best_epoch': self.best_epoch,  # Save the best epoch
             },
             f = exp_dir / 'model.pt'
         )
@@ -710,6 +714,10 @@ class POS_Predictor_Trainer:
 
     def train_epoch(self, epoch):
         self.model.train()
+        if self.options.freeze == True:
+            self.model.autoencoder.eval()
+            for param in self.autoencoder.parameters():
+                param.requires_grad = False
 
         total_loss = AverageMeter()
         batch_time = AverageMeter()
@@ -721,25 +729,25 @@ class POS_Predictor_Trainer:
             signal = data[0].to(self.options.device).float()
             label = data[1].to(self.options.device).long()
             
+            pos_input = np.full(len(label) + 1, pos_tags["PAD"])
+            pos_target = np.full(len(label) + 1, pos_tags["PAD"])
 
-            if self.options.model == 'DVAE' or self.options.model == 'DRVAE':
-                embed, mu, log_var = self.embed.encode(signal)
-                output = self.model(embed)
-                loss = self.loss(output.reshape(-1,self.options.num_class), label.reshape(-1), self.options.pred_loss_type)
-                total_loss.update(loss.item())
-            
-            elif self.options.model == 'TCAE':
-                embed = self.embed.encode(signal, None)             
-                output = self.model(embed)
-                loss = self.loss(output.reshape(-1,self.options.num_class), label.reshape(-1), self.options.pred_loss_type)
+            pos_input[0] = pos_tags["START"]
+            pos_input[1:len(label)+1] = label
+            pos_target[:len(label)] = label
+
+            indices = torch.nonzero(label == pos_tags["PAD"], as_tuple=True)[0]
+            first_index = indices[0].item() if len(indices) > 0 else None
+            pos_target[first_index] = pos_tags["END"]
+
+            if self.options.model == 'TCAE':        
+                output = self.model(signal, pos_input)
+                loss = self.loss(output.reshape(-1,len(pos_tags)), pos_target.reshape(-1), self.options.pred_loss_type)
                 total_loss.update(loss.item())
             else:
-                embed = self.embed.encode(signal)
-                output = self.model(embed)
-                loss = self.loss(output.reshape(-1,self.options.num_class), label.reshape(-1), self.options.pred_loss_type)
-                total_loss.update(loss.item())
+                print("Not Supported")
 
-            acc = accuracy(output.reshape(-1,self.options.num_class),label.reshape(-1))
+            acc = accuracy(output.reshape(-1,len(pos_tags)), pos_target.reshape(-1))
             pred_acc.update(acc[0].item())
             
             self.optimizer.zero_grad()
@@ -772,24 +780,25 @@ class POS_Predictor_Trainer:
                 signal = data[0].to(self.options.device).float()               
                 label = data[1].to(self.options.device).long()
 
-                if self.options.model == 'DVAE' or self.options.model == 'DRVAE':
-                    embed, mu, log_var = self.embed.encode(signal)
-                    output = self.model(embed)
-                    loss = self.loss(output.reshape(-1,self.options.num_class), label.reshape(-1), self.options.pred_loss_type)
-                    total_loss.update(loss.item())
+                pos_input = np.full(len(label) + 1, pos_tags["PAD"])
+                pos_target = np.full(len(label) + 1, pos_tags["PAD"])
+
+                pos_input[0] = pos_tags["START"]
+                pos_input[1:len(label)+1] = label
+                pos_target[:len(label)] = label
+
+                indices = torch.nonzero(label == pos_tags["PAD"], as_tuple=True)[0]
+                first_index = indices[0].item() if len(indices) > 0 else None
+                pos_target[first_index] = pos_tags["END"]
                 
-                elif self.options.model == 'TCAE':
-                    embed = self.embed.encode(signal,None)
-                    output = self.model(embed)
-                    loss = self.loss(output.reshape(-1,self.options.num_class), label.reshape(-1), self.options.pred_loss_type)
+                if self.options.model == 'TCAE':        
+                    output = self.model(signal, pos_input)
+                    loss = self.loss(output.reshape(-1,len(pos_tags)), pos_target.reshape(-1), self.options.pred_loss_type)
                     total_loss.update(loss.item())
                 else:
-                    embed = self.embed.encode(signal)
-                    output = self.model(embed)
-                    loss = self.loss(output.reshape(-1,self.options.num_class), label.reshape(-1), self.options.pred_loss_type)
-                    total_loss.update(loss.item())
+                    print("Not Supported")
 
-            acc = accuracy(output.reshape(-1,self.options.num_class),label.reshape(-1))
+            acc = accuracy(output.reshape(-1,len(pos_tags)), pos_target.reshape(-1))
             pred_acc.update(acc[0].item())
 
             self.writer.add_scalar('Val_Loss', total_loss.avg, self.epoch)
@@ -808,7 +817,7 @@ class POS_Predictor_Trainer:
         if loss_type == 'cross_entropy':
             # print('input: ',input.shape)
             # print('target: ',np.unique(target.detach().cpu().numpy()))
-            loss = F.cross_entropy(input,target)
+            loss = F.cross_entropy(input,target,ignore_idx=pos_tags["PAD"])
         elif loss_type == 'mse':
             loss = F.mse_loss(input,target)
         else:
@@ -824,6 +833,7 @@ class POS_Predictor_Trainer:
         checkpoint_tmp = torch.load(self.options.checkpoint)
         print("Load checkpoint {} with loss {}".format(checkpoint_tmp['epoch'], checkpoint_tmp['best_val_loss']))
         self.best_val_loss = checkpoint_tmp['best_val_loss']
+        self.best_epoch = checkpoint_tmp.get('best_epoch', 0)  # Load best_epoch or default to 0
         self.start_epoch = checkpoint_tmp['epoch'] + 1
 
         self.model.load_state_dict(checkpoint_tmp['model'])
@@ -841,246 +851,13 @@ class POS_Predictor_Trainer:
                 'model': self.model.state_dict(),
                 'optimizer': self.optimizer.state_dict(),
                 'best_val_loss': self.best_val_loss,
-                'exp_dir': exp_dir
+                'exp_dir': exp_dir,
+                'best_epoch': self.best_epoch  # Save the best epoch
             },
             f = exp_dir / 'predictor_model.pt'
         )
         if is_best:
             shutil.copyfile(exp_dir / 'predictor_model.pt', exp_dir / 'best_predictor_model.pt')
-class Predictor_Trainer:
-    """
-    Trainer.
-
-    Configuration for the predictor trainer is provided by the argument 'options'. 
-    Must contain the following fields:
-
-    Args:
-        options('argparse.Namespace'): Options for the trainer.
-        data_module('object'): Data module class for the used datasets.
-    """
-    def __init__(self, options, data_module):
-        self.options = options
-
-        # setup model, optimizer and scheduler
-        self.model = build_predictor(self.options)
-        if options.data_parallel:
-            self.model = torch.nn.DataParallel(self.model)
-            self.model.device_ids = [0,1]
-        self.optimizer = build_optimizer(self.options.lr, self.options.weight_decay, self.model.parameters())
-        self.scheduler = build_lr_scheduler(self.options, self.optimizer)
-
-        # setup the dataloader
-        self.train_loader, self.val_loader, _ = data_module._setup_dataloaders()
-
-        self.epoch = 0
-        self.start_epoch = 0
-        self.end_epoch = options.num_epochs
-
-        self.best_val_loss = np.inf
-        self.best_epoch = 0
-
-        # setup saving, writer, and logging
-        options.exp_dir.mkdir(parents=True, exist_ok=True)
-        options.inference_dir.mkdir(parents=True, exist_ok=True)
-
-        with open(os.path.join(str(options.exp_dir), 'args.pkl'), "wb") as f:
-            pickle.dump(options.__dict__, f)
-
-        self.writer = SummaryWriter(log_dir=options.exp_dir / 'summary')
-
-        logging.basicConfig(level=logging.INFO)
-        self.logger = logging.getLogger(__name__)
-        self.logger.info(self.options)
-        self.logger.info(self.model)
-
-    def load_checkpoint(self):
-        if self.options.resume:
-            self.load()
-
-    def __call__(self):
-        self.load_checkpoint()
-        self.load_embed(os.path.join(self.options.exp_dir , 'best_model.pt'))
-        return self.train()
-
-    def train(self):
-        for epoch in range(self.start_epoch, self.end_epoch):
-            self.epoch = epoch
-            train_loss, train_time = self.train_epoch(self.epoch)
-            self.scheduler.step()
-            val_loss, val_time = self.evaluate_epoch()
-
-            is_best = val_loss < self.best_val_loss
-            self.best_val_loss = min(self.best_val_loss, val_loss)
-            if self.options.save_model:
-                self.save_model(is_best)
-            self.logger.info(
-                f'Epoch = [{1 + self.epoch:3d}/{self.options.num_epochs:3d}] Train_Loss = {train_loss:.4g} '
-                f'Val_Loss = {val_loss:.4g} Train_Time = {train_time:.4f}s Val_Time = {val_time:.4f}s',
-            )
-            if is_best:
-                self.best_epoch = epoch
-            print('Best epoch: ',self.best_epoch)
-            print('Waiting: ', epoch-self.best_epoch)
-            if (epoch-self.best_epoch) >= self.options.early_stop:
-                print("######### Early Stop #########")
-                break
-        self.writer.close()
-
-    def train_epoch(self, epoch):
-        self.model.train()
-
-        total_loss = AverageMeter()
-        batch_time = AverageMeter()
-        pred_acc = AverageMeter()
-        start_epoch = time.perf_counter()
-
-        for iter, data in enumerate(self.train_loader):
-            start_iter = time.perf_counter()
-            signal = data[0].to(self.options.device).float()
-            label = data[1].to(self.options.device).long()
-            
-
-            if self.options.model == 'DVAE' or self.options.model == 'DRVAE':
-                embed, mu, log_var = self.embed.encode(signal)
-                output = self.model(embed)
-                loss = self.loss(output.reshape(-1,self.options.num_class), label.reshape(-1), self.options.pred_loss_type)
-                total_loss.update(loss.item())
-            
-            elif self.options.model == 'TCAE':
-                embed = self.embed.encode(signal, None)             
-                output = self.model(embed)
-                loss = self.loss(output.reshape(-1,self.options.num_class), label.reshape(-1), self.options.pred_loss_type)
-                total_loss.update(loss.item())
-            else:
-                embed = self.embed.encode(signal)
-                output = self.model(embed)
-                loss = self.loss(output.reshape(-1,self.options.num_class), label.reshape(-1), self.options.pred_loss_type)
-                total_loss.update(loss.item())
-
-            acc = accuracy(output.reshape(-1,self.options.num_class),label.reshape(-1))
-            pred_acc.update(acc[0].item())
-            
-            self.optimizer.zero_grad()
-            loss.backward()
-            self.optimizer.step()
-
-            if iter % self.options.report_period == 0:
-                print('Epoch[{0}][{1}/{2}]\t'
-                    'Time {batch_time.avg:.3f} ({batch_time.val:.3f})\t' 
-                    'Loss {total_loss.avg:.4f} ({total_loss.val:.4f})\t'
-                    'Acc {pred_acc.avg:.4f} ({pred_acc.val:.4f})'.format(
-                    epoch, iter, len(self.train_loader), batch_time = batch_time, total_loss = total_loss, pred_acc = pred_acc))
-
-            batch_time.update(time.perf_counter()-start_iter)
-               
-        self.writer.add_scalar('Train_Loss', total_loss.avg, self.epoch)
-        print('Train Time {0} \t Train Loss {1}'.format(time.perf_counter() - start_epoch, total_loss.avg))
-
-        return total_loss.avg, time.perf_counter() - start_epoch
-
-    def evaluate_epoch(self):
-        self.model.eval()
-
-        total_loss = AverageMeter()
-        pred_acc = AverageMeter()
-        start_epoch = time.perf_counter()
-
-        with torch.no_grad():
-            for iter, data in enumerate(self.val_loader):
-                signal = data[0].to(self.options.device).float()               
-                label = data[1].to(self.options.device).long()
-
-                if self.options.model == 'DVAE' or self.options.model == 'DRVAE':
-                    embed, mu, log_var = self.embed.encode(signal)
-                    output = self.model(embed)
-                    loss = self.loss(output.reshape(-1,self.options.num_class), label.reshape(-1), self.options.pred_loss_type)
-                    total_loss.update(loss.item())
-                
-                elif self.options.model == 'TCAE':
-                    embed = self.embed.encode(signal,None)
-                    output = self.model(embed)
-                    loss = self.loss(output.reshape(-1,self.options.num_class), label.reshape(-1), self.options.pred_loss_type)
-                    total_loss.update(loss.item())
-                else:
-                    embed = self.embed.encode(signal)
-                    output = self.model(embed)
-                    loss = self.loss(output.reshape(-1,self.options.num_class), label.reshape(-1), self.options.pred_loss_type)
-                    total_loss.update(loss.item())
-
-            acc = accuracy(output.reshape(-1,self.options.num_class),label.reshape(-1))
-            pred_acc.update(acc[0].item())
-
-            self.writer.add_scalar('Val_Loss', total_loss.avg, self.epoch)
-            print('Val Time {0} \t Val Loss {1} \t Val Acc {2}'.format(time.perf_counter() - start_epoch, total_loss.avg, pred_acc.avg))
-
-        return total_loss.avg, time.perf_counter() - start_epoch
-
-    def loss(self, input, target, loss_type):
-        """
-        Args:
-            input: reconstructed time series
-            target: original time series
-            loss_type: the type of loss function         
-        """
-        # Reconstruction Loss
-        if loss_type == 'cross_entropy':
-            # print('input: ',input.shape)
-            # print('target: ',np.unique(target.detach().cpu().numpy()))
-            loss = F.cross_entropy(input,target)
-        elif loss_type == 'mse':
-            loss = F.mse_loss(input,target)
-        else:
-            raise NotImplementedError()
-
-        return loss
-
-    def load_embed(self, checkpoint_file):
-        checkpoint = torch.load(checkpoint_file)
-        print("Load checkpoint {} with loss {}".format(checkpoint['epoch'], checkpoint['best_val_loss']))
-        #self.options = checkpoint['options']
-
-        self.embed = build_model(self.options)
-        if self.options.data_parallel:
-            self.embed = torch.nn.DataParallel(self.model)
-            self.embed.device_ids = [0,1]
-
-        self.embed.eval()
-
-        self.embed.load_state_dict(checkpoint['model'])
-
-    def load(self):
-        self.model = build_model(self.options)
-        if self.options.data_parallel:
-            self.model = torch.nn.DataParallel(self.model)
-
-        checkpoint_tmp = torch.load(self.options.checkpoint)
-        print("Load checkpoint {} with loss {}".format(checkpoint_tmp['epoch'], checkpoint_tmp['best_val_loss']))
-        self.best_val_loss = checkpoint_tmp['best_val_loss']
-        self.start_epoch = checkpoint_tmp['epoch'] + 1
-
-        self.model.load_state_dict(checkpoint_tmp['model'])
-        self.optimizer = build_optimizer(self.options.lr, self.options.weight_decay, self.model.parameters())
-        self.optimizer.load_state_dict(checkpoint_tmp['optimizer'])
-        self.scheduler = build_lr_scheduler(self.options, self.optimizer,self.start_epoch)
-
-
-    def save_model(self,is_best):
-        exp_dir = self.options.exp_dir
-        torch.save(
-            {
-                'epoch': self.epoch,
-                'options': self.options,
-                'model': self.model.state_dict(),
-                'optimizer': self.optimizer.state_dict(),
-                'best_val_loss': self.best_val_loss,
-                'exp_dir': exp_dir
-            },
-            f = exp_dir / 'predictor_model.pt'
-        )
-        if is_best:
-            shutil.copyfile(exp_dir / 'predictor_model.pt', exp_dir / 'best_predictor_model.pt')
-
-
 
 class Predictor_Tester:
     def __init__(self, options, data_module, exp_dir):

@@ -1,8 +1,12 @@
 {
   "21styear": {},
-  "black": {},
+  "black": {
+    "sub-278" : []
+  },
   "bronx": {},
-  "forgot": {},
+  "forgot": {
+    "sub-278" : []
+  },
   "lucy": {
     "sub-053": [
       "sub-053_task-lucy"

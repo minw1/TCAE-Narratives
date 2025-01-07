@@ -12,6 +12,7 @@ from gen_vox import get_vox
 from trs_to_pos import get_pos_seq
 import json
 from os.path import join
+from utils import pos_tags
 
 class RT_Narrative_Data_Module(): #for random time splits
 
@@ -81,9 +82,38 @@ class RT_Narrative_Data_Module(): #for random time splits
                 "num_test" : num_test,
                 "pattern" : pattern_array,
                 "align" : align_data
-            }
-
             
+            }
+            '''
+            for i in range(num_subj):
+                pieman_doubleruns = ["sub-001", "sub-002", "sub-003", "sub-004", "sub-005", "sub-006", "sub-008", "sub-010", "sub-011", "sub-012", "sub-013", "sub-014", "sub-015", "sub-016"]
+
+                subject = self.task_data[task]["valid_ids"].iloc[i]
+                space = "fsaverage6"
+                base_dir = '/home/wsm32/project/wsm_thesis_scratch/narratives/'
+                clean_dir = join(base_dir, 'derivatives', 'afni-smooth', subject, 'func')
+                run = ""
+                if task == "pieman" and subject in pieman_doubleruns:
+                    run = "_run-1"
+                
+
+                clean_fn_L  = Path(join(clean_dir, (f'{subject}_task-{task}{run}_space-{space}_'
+                                        f'hemi-{"L"}_desc-clean.func.gii')))
+                clean_fn_R = Path(join(clean_dir, (f'{subject}_task-{task}{run}_space-{space}_'
+                                        f'hemi-{"R"}_desc-clean.func.gii')))
+                if not clean_fn_L.exists():
+                    print(clean_fn_L)
+                if not clean_fn_R.exists():
+                    print(clean_fn_R)
+            '''
+            
+
+
+
+            #if(task == "forgot"):
+            #    print(contains_task)
+            #    print(to_exclude)
+            #    print(valid_ids)
             
         
 
@@ -91,6 +121,10 @@ class RT_Narrative_Data_Module(): #for random time splits
     def _setup_dataloaders(self):
 
         train_data, val_data, test_data = self._create_datasets()
+        pf = self.num_workers > 0
+
+        if not pf:
+            pf = None
 
         train_loader = torch.utils.data.DataLoader(
             dataset=train_data,
@@ -99,7 +133,7 @@ class RT_Narrative_Data_Module(): #for random time splits
             num_workers=self.num_workers,
             pin_memory=True,
             drop_last=True,
-            prefetch_factor=2
+            prefetch_factor=pf
         )
 
         val_loader = torch.utils.data.DataLoader(
@@ -108,7 +142,7 @@ class RT_Narrative_Data_Module(): #for random time splits
             shuffle=False,            
             num_workers=self.num_workers,
             pin_memory=True,
-            prefetch_factor=2
+            prefetch_factor=pf
         )
 
         test_loader = torch.utils.data.DataLoader(
@@ -117,7 +151,7 @@ class RT_Narrative_Data_Module(): #for random time splits
             shuffle=False,
             num_workers=self.num_workers,
             pin_memory=True,
-            prefetch_factor=2
+            prefetch_factor=pf
         )
 
         return train_loader, val_loader, test_loader
@@ -135,7 +169,12 @@ class RT_Narrative_Data_Module(): #for random time splits
         
         return ConcatDataset(train_loaders), ConcatDataset(val_loaders), ConcatDataset(test_loaders)
 
-        
+    def create_tunnel(self):
+        task = "tunnel"
+        train = RT_Narrative_Dataset(task, self.task_data[task], self.segment_length, self.train_val_test, self.delay, self.tr_duration, 0, self.max_length, transform=self.transform)
+        val = RT_Narrative_Dataset(task, self.task_data[task], self.segment_length, self.train_val_test, self.delay, self.tr_duration, 1, self.max_length, transform=self.transform)
+        test = RT_Narrative_Dataset(task,self.task_data[task], self.segment_length, self.train_val_test, self.delay, self.tr_duration, 2, self.max_length, transform=self.transform)
+        return train, val, test
 
 class RT_Narrative_Dataset(torch.utils.data.Dataset):
     """
@@ -185,7 +224,7 @@ class RT_Narrative_Dataset(torch.utils.data.Dataset):
         
     def seg_idx_to_trs(self, seg_idx): #takes a segment index, converts it to the relevant trs
         tr_offset = math.floor(self.task_data["start_time"] / self.tr_duration)
-        return (seg_idx * self.segment_length + tr_offset, (seg_idx + 1) * self.segment_length + tr_offset)
+        return ((seg_idx * self.segment_length )+ tr_offset, ((seg_idx + 1) * self.segment_length) + tr_offset)
 
 
         
@@ -204,16 +243,31 @@ class RT_Narrative_Dataset(torch.utils.data.Dataset):
         s = get_vox(self.task, self.task_data["valid_ids"].iloc[subj_i],"fsaverage6")
         signal = s[tr_span[0]: tr_span[1], :]
 
+        #print(s.shape)
+
+        #assert(tr_span[0] > 0)
+        #assert(tr_span[1] < s.shape[0])
+        if not (signal.shape[0] == self.segment_length):
+            print("SIGNAL SHAPE MISMATCH")
+            print(f"task: {self.task}")
+            print(f"taskdata: {self.task_data}")
+            print(f"segment_index: {self.these_seg_ids[seg_i]}")
+            print(f"tr_span: {tr_span}")
+            print(f"s.shape: {s.shape}")
+            print(f"these_seg_ids.shape: {self.these_seg_ids.shape}")
+
         if self.transform is None:
             sample = signal
         else:
             sample = self.transform(signal)
 
-        print(f"Task: {self.task}\n P_start: {tr_span[0]*self.tr_duration - self.delay - self.task_data["stim_offset"]} \n P_end: {tr_span[1]*self.tr_duration - self.delay - self.task_data["stim_offset"]}")
+        #print(f"Task: {self.task}\n P_start: {tr_span[0]*self.tr_duration - self.delay - self.task_data["stim_offset"]} \n P_end: {tr_span[1]*self.tr_duration - self.delay - self.task_data["stim_offset"]}")
 
         pos_seq = get_pos_seq(self.task_data["align"],tr_span[0],tr_span[1],self.task_data["stim_offset"],tr_dur=self.tr_duration, delay=self.delay)
-        print(pos_seq)
+        #print(pos_seq)
         assert(len(pos_seq) < self.max_length)
-        label = np.full(self.max_length, 100)
+        label = np.full(self.max_length, pos_tags["PAD"]) # 17 is PAD
         label[:len(pos_seq)] = pos_seq
+        #label[0] = pos_tags["START"]
+        #label[len(pos_seq)+1] = pos_tags["END"]
         return torch.from_numpy(sample), label
