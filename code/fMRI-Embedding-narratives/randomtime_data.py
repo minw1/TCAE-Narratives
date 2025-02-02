@@ -84,47 +84,13 @@ class RT_Narrative_Data_Module(): #for random time splits
                 "align" : align_data
             
             }
-            '''
-            for i in range(num_subj):
-                pieman_doubleruns = ["sub-001", "sub-002", "sub-003", "sub-004", "sub-005", "sub-006", "sub-008", "sub-010", "sub-011", "sub-012", "sub-013", "sub-014", "sub-015", "sub-016"]
-
-                subject = self.task_data[task]["valid_ids"].iloc[i]
-                space = "fsaverage6"
-                base_dir = '/home/wsm32/project/wsm_thesis_scratch/narratives/'
-                clean_dir = join(base_dir, 'derivatives', 'afni-smooth', subject, 'func')
-                run = ""
-                if task == "pieman" and subject in pieman_doubleruns:
-                    run = "_run-1"
-                
-
-                clean_fn_L  = Path(join(clean_dir, (f'{subject}_task-{task}{run}_space-{space}_'
-                                        f'hemi-{"L"}_desc-clean.func.gii')))
-                clean_fn_R = Path(join(clean_dir, (f'{subject}_task-{task}{run}_space-{space}_'
-                                        f'hemi-{"R"}_desc-clean.func.gii')))
-                if not clean_fn_L.exists():
-                    print(clean_fn_L)
-                if not clean_fn_R.exists():
-                    print(clean_fn_R)
-            '''
-            
-
-
-
-            #if(task == "forgot"):
-            #    print(contains_task)
-            #    print(to_exclude)
-            #    print(valid_ids)
-            
-        
 
 
     def _setup_dataloaders(self):
 
         train_data, val_data, test_data = self._create_datasets()
-        pf = self.num_workers > 0
+        pf = 2 if self.num_workers > 0 else None
 
-        if not pf:
-            pf = None
 
         train_loader = torch.utils.data.DataLoader(
             dataset=train_data,
@@ -169,13 +135,6 @@ class RT_Narrative_Data_Module(): #for random time splits
         
         return ConcatDataset(train_loaders), ConcatDataset(val_loaders), ConcatDataset(test_loaders)
 
-    def create_tunnel(self):
-        task = "tunnel"
-        train = RT_Narrative_Dataset(task, self.task_data[task], self.segment_length, self.train_val_test, self.delay, self.tr_duration, 0, self.max_length, transform=self.transform)
-        val = RT_Narrative_Dataset(task, self.task_data[task], self.segment_length, self.train_val_test, self.delay, self.tr_duration, 1, self.max_length, transform=self.transform)
-        test = RT_Narrative_Dataset(task,self.task_data[task], self.segment_length, self.train_val_test, self.delay, self.tr_duration, 2, self.max_length, transform=self.transform)
-        return train, val, test
-
 class RT_Narrative_Dataset(torch.utils.data.Dataset):
     """
     A PyTorch Dataset that provides access to fMRI volume data.
@@ -214,6 +173,7 @@ class RT_Narrative_Dataset(torch.utils.data.Dataset):
         self.num_ex =  self.segs_per_sub * task_data["num_subj"] # how many examples for this dataset
         self.these_seg_ids = np.where(task_data["pattern"] == which_type)[0]
         self.max_length = max_length
+        self.h5_dir = "/home/wsm32/project/wsm_thesis_scratch/narratives/h5/"
 
         #self.signals = []
         #for i in range(self.task_data["num_subj"]):
@@ -240,8 +200,11 @@ class RT_Narrative_Dataset(torch.utils.data.Dataset):
         subj_i = math.floor(i/self.segs_per_sub)
         seg_i = i % self.segs_per_sub
         tr_span = self.seg_idx_to_trs(self.these_seg_ids[seg_i])
-        s = get_vox(self.task, self.task_data["valid_ids"].iloc[subj_i],"fsaverage6")
-        signal = s[tr_span[0]: tr_span[1], :]
+
+        with h5py.File(join(self.h5_dir, f"{self.task}_{self.task_data["valid_ids"].iloc[subj_i]}.hdf5"), "r") as f:
+            data = f["data"]
+            signal = data[tr_span[0]: tr_span[1], :]
+
 
         #print(s.shape)
 
@@ -255,6 +218,7 @@ class RT_Narrative_Dataset(torch.utils.data.Dataset):
             print(f"tr_span: {tr_span}")
             print(f"s.shape: {s.shape}")
             print(f"these_seg_ids.shape: {self.these_seg_ids.shape}")
+            assert(False)
 
         if self.transform is None:
             sample = signal

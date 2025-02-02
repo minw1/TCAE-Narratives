@@ -240,7 +240,11 @@ class Standard_Autoencoder(nn.Module):
         self.decoder = decoder
 
         
-    def forward(self, vol, encode_mask, decode_mask):
+    def forward(self, vol, encode_mask=None, decode_mask=None):
+        for a in (vol, encode_mask, decode_mask):
+            if a is not None:
+                print(a.shape)
+
         return self.decode(self.encode(vol, encode_mask), decode_mask)
     
     def encode(self, vol, encode_mask):

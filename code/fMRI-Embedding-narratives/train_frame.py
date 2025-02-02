@@ -42,50 +42,6 @@ def build_model(options):
             d_ff=options.d_ff, 
             h=options.n_head, 
             dropout=options.dropout).to(options.device)
-
-    elif options.model == 'AE':
-        model = Baseline_Autoencoder(
-            model='AE', 
-            d_vol=options.d_vol, 
-            d_latent=options.d_latent
-        ).to(options.device)      
-
-    elif options.model == 'DSRAE':
-        model = Baseline_Autoencoder(
-            model='DSRAE', 
-            d_vol=options.d_vol, 
-            d_emd1=options.d_emd1, 
-            d_emd2=options.d_emd2,
-            d_latent=options.d_latent
-        ).to(options.device)
-
-    elif options.model == 'DVAE':
-        model = Baseline_Autoencoder(
-            model='DVAE', 
-            d_vol=options.d_vol, 
-            d_emd1=options.d_emd1, 
-            d_emd2=options.d_emd2,
-            d_latent=options.d_latent
-        ).to(options.device)
-
-    elif options.model == 'DRVAE':
-        model = Baseline_Autoencoder(
-            model='DRVAE', 
-            d_vol=options.d_vol, 
-            d_emd1=options.d_emd1, 
-            d_emd2=options.d_emd2,
-            d_latent=options.d_latent
-        ).to(options.device)
-
-    elif options.model == 'STAAE':
-        model = Baseline_Autoencoder(
-            model='STAAE', 
-            d_vol=options.d_vol, 
-            d_emd1=options.d_emd1, 
-            d_emd2=options.d_emd2,
-            d_latent=options.d_latent
-        ).to(options.device)
-
     else:
         raise NotImplementedError()
 
@@ -104,7 +60,6 @@ def build_predictor(options):
 
 def build_pos_predictor(options):
     model = POS_predictor(options.l_vocab, d_latent=options.d_latent, d_dec_ff=options.d_dec_ff, dec_dropout=options.dec_dropout, n_dec_head=options.n_dec_head, n_dec_blocks=options.n_dec_blocks, d_vol=options.d_vol, d_enc_ff=options.d_ff,n_enc_head=options.n_head,n_enc_blocks=options.layers,enc_dropout=options.dropout)
-    model.initialize_encoder_weights(options.checkpoint_file)
     return model
 
 class Trainer:
@@ -156,14 +111,6 @@ class Trainer:
     def load_checkpoint(self):
         if self.options.resume:
             self.load()
-
-    def make_std_mask(self, tgt, pad=0):
-        "Create a mask to hide padding and future words."
-        tgt_mask = (tgt != pad).unsqueeze(-3)
-        #print(tgt_mask.data.dtype) # bool
-        tgt_mask = Variable(
-            subsequent_mask(tgt.size(-2)).type_as(tgt_mask.data))
-        return tgt_mask
 
     def __call__(self):
         self.load_checkpoint()
@@ -398,8 +345,6 @@ class Tester:
 
     def save(self, fname, array):
         np.save(fname, array)
-
-
 
 class Predictor_Trainer:
     """
@@ -650,11 +595,15 @@ class POS_Predictor_Trainer:
 
         # setup model, optimizer and scheduler
         self.model = build_pos_predictor(self.options)
+        self.model.initialize_encoder_weights(self.options.encoder_base)
+        self.model = self.model.to(self.options.device)
+
         if options.data_parallel:
             self.model = torch.nn.DataParallel(self.model)
             self.model.device_ids = [0,1]
         self.optimizer = build_optimizer(self.options.lr, self.options.weight_decay, self.model.parameters())
         self.scheduler = build_lr_scheduler(self.options, self.optimizer)
+        
 
         # setup the dataloader
         self.train_loader, self.val_loader, _ = data_module._setup_dataloaders()
@@ -715,8 +664,8 @@ class POS_Predictor_Trainer:
     def train_epoch(self, epoch):
         self.model.train()
         if self.options.freeze == True:
-            self.model.autoencoder.eval()
-            for param in self.autoencoder.parameters():
+            self.model.encoder.eval()
+            for param in self.encoder.parameters():
                 param.requires_grad = False
 
         total_loss = AverageMeter()
@@ -729,19 +678,35 @@ class POS_Predictor_Trainer:
             signal = data[0].to(self.options.device).float()
             label = data[1].to(self.options.device).long()
             
-            pos_input = np.full(len(label) + 1, pos_tags["PAD"])
-            pos_target = np.full(len(label) + 1, pos_tags["PAD"])
+            batch_size = label.shape[0]
+            seq_len = label.shape[1]  # Assuming label has shape (batch, seq_len)
 
-            pos_input[0] = pos_tags["START"]
-            pos_input[1:len(label)+1] = label
-            pos_target[:len(label)] = label
+            pos_input = torch.full((batch_size, seq_len + 1), pos_tags["PAD"], dtype=torch.long, device=self.options.device)
+            pos_target = torch.full((batch_size, seq_len + 1), pos_tags["PAD"], dtype=torch.long, device=self.options.device)
 
-            indices = torch.nonzero(label == pos_tags["PAD"], as_tuple=True)[0]
-            first_index = indices[0].item() if len(indices) > 0 else None
-            pos_target[first_index] = pos_tags["END"]
+            # Assign values for shifted positions
+            pos_input[:, 0] = pos_tags["START"]
+            pos_input[:, 1:seq_len+1] = label
+            pos_target[:, :seq_len] = label
+
+            # Find the first occurrence of PAD and replace with END
+            mask = label == pos_tags["PAD"]
+            indices = mask.int().argmax(dim=1)  # First occurrence of PAD along sequence dimension
+            valid_indices = mask.any(dim=1)  # Check if PAD exists in each sequence
+            pos_target[valid_indices, indices[valid_indices]] = pos_tags["END"]
+
+            pos_input_one_hot = F.one_hot(pos_input, num_classes=20).float()   # Shape: (batch_size, seq_len+1, 20)
+            pos_target_one_hot = F.one_hot(pos_target, num_classes=20).float()   # Shape: (batch_size, seq_len+1, 20)
+
+            print(pos_input[0,:10])
+            print(pos_target[0,:10])
 
             if self.options.model == 'TCAE':        
-                output = self.model(signal, pos_input)
+                output = self.model(signal, pos_tokens=pos_input_one_hot)
+                print("Shapes:")
+                print(output.shape)
+                print(pos_target_one_hot.shape)
+
                 loss = self.loss(output.reshape(-1,len(pos_tags)), pos_target.reshape(-1), self.options.pred_loss_type)
                 total_loss.update(loss.item())
             else:
@@ -790,9 +755,18 @@ class POS_Predictor_Trainer:
                 indices = torch.nonzero(label == pos_tags["PAD"], as_tuple=True)[0]
                 first_index = indices[0].item() if len(indices) > 0 else None
                 pos_target[first_index] = pos_tags["END"]
+
+                pos_input_one_hot = F.one_hot(pos_input, num_classes=20).float()   # Shape: (batch_size, seq_len+1, 20)
+                pos_target_one_hot = F.one_hot(pos_target, num_classes=20).float()   # Shape: (batch_size, seq_len+1, 20)
                 
+
+
                 if self.options.model == 'TCAE':        
                     output = self.model(signal, pos_input)
+                    #print("Shapes:")
+                    #print(output.shape)
+                    #print(pos_target_one_hot.shape)
+
                     loss = self.loss(output.reshape(-1,len(pos_tags)), pos_target.reshape(-1), self.options.pred_loss_type)
                     total_loss.update(loss.item())
                 else:
@@ -817,30 +791,31 @@ class POS_Predictor_Trainer:
         if loss_type == 'cross_entropy':
             # print('input: ',input.shape)
             # print('target: ',np.unique(target.detach().cpu().numpy()))
-            loss = F.cross_entropy(input,target,ignore_idx=pos_tags["PAD"])
-        elif loss_type == 'mse':
-            loss = F.mse_loss(input,target)
+            loss = F.cross_entropy(input,target,ignore_index=pos_tags["PAD"])
+        #elif loss_type == 'mse':
+        #    loss = F.mse_loss(input,target)
         else:
             raise NotImplementedError()
 
         return loss
 
     def load(self):
-        self.model = build_model(self.options)
+        self.model = build_pos_predictor(self.options)
         if self.options.data_parallel:
             self.model = torch.nn.DataParallel(self.model)
 
         checkpoint_tmp = torch.load(self.options.checkpoint)
         print("Load checkpoint {} with loss {}".format(checkpoint_tmp['epoch'], checkpoint_tmp['best_val_loss']))
         self.best_val_loss = checkpoint_tmp['best_val_loss']
-        self.best_epoch = checkpoint_tmp.get('best_epoch', 0)  # Load best_epoch or default to 0
+        self.best_epoch = checkpoint_tmp['best_epoch']
         self.start_epoch = checkpoint_tmp['epoch'] + 1
-
+        
         self.model.load_state_dict(checkpoint_tmp['model'])
+
         self.optimizer = build_optimizer(self.options.lr, self.options.weight_decay, self.model.parameters())
         self.optimizer.load_state_dict(checkpoint_tmp['optimizer'])
         self.scheduler = build_lr_scheduler(self.options, self.optimizer,self.start_epoch)
-
+        
 
     def save_model(self,is_best):
         exp_dir = self.options.exp_dir

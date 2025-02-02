@@ -6,7 +6,7 @@ import argparse, pathlib
 import random
 import torch
 import numpy as np
-from train_frame import Trainer, Predictor_Trainer, Predictor_Tester
+from train_frame import Trainer, POS_Predictor_Trainer, Predictor_Tester
 from data_module import Volume_Data_Module, HCP_Volume_Data_Module
 torch.backends.cudnn.enabled = False
 from randomtime_data import RT_Narrative_Data_Module
@@ -70,11 +70,15 @@ if __name__ == "__main__":
     parser.add_argument('--exp_dir', type=pathlib.Path, required=True, help='Path where model and results should be saved')
     parser.add_argument('--save_model', type=bool, default=True, help='Save model every iteration or not')
     parser.add_argument('--save_embedding', type=bool, default=True, help='Save embedding in test or not')
-    parser.add_argument('--checkpoint', type=str, help='Path to an existing checkpoint. Used along with "--resume"')
+
+
+    parser.add_argument('--checkpoint', type=str, help='Path to an existing checkpoint. Used along with "--resume"') #If predictor model has been training, load from here
+    parser.add_argument('--encoder_base', type=str, help='Path to an existing encoder base.') 
 
     parser.add_argument('--seed', default=0, type=int, help='Seed for random number generators')
 
     parser.add_argument('--test', action='store_true')
+    parser.add_argument('--freeze', action='store_true')
 
 
     args = parser.parse_args()
@@ -112,7 +116,7 @@ if __name__ == "__main__":
         policy = Predictor_Tester(args, data_module, args.exp_dir)
     elif args.predict:
         print('Train the Predictor')
-        policy = Predictor_Trainer(args, data_module)
+        policy = POS_Predictor_Trainer(args, data_module)
     else:
         policy = Trainer(args, data_module)
 
