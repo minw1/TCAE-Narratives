@@ -10,7 +10,7 @@ from model import Make_Autoencoder,subsequent_mask
 from predictor import Brain_State_Predictor
 from utils import AverageMeter,accuracy
 from torchmetrics import Accuracy, Precision, Recall, F1Score, AUROC
-from pos_decoder import POS_predictor
+from pos_decoder import POS_predictor, No_Scans_POS_Decoder
 from utils import pos_tags
 
 vae_loss = vae_loss_function()
@@ -59,7 +59,15 @@ def build_predictor(options):
     return model
 
 def build_pos_predictor(options):
-    model = POS_predictor(options.l_vocab, d_latent=options.d_latent, d_dec_ff=options.d_dec_ff, dec_dropout=options.dec_dropout, n_dec_head=options.n_dec_head, n_dec_blocks=options.n_dec_blocks, d_vol=options.d_vol, d_enc_ff=options.d_ff,n_enc_head=options.n_head,n_enc_blocks=options.layers,enc_dropout=options.dropout)
+
+    if options.language_only:
+        model = No_Scans_POS_Decoder(options.l_vocab, d_latent=options.d_latent, d_dec_ff=options.d_dec_ff, dec_dropout=options.dec_dropout, n_dec_head=options.n_dec_head, n_dec_blocks=options.n_dec_blocks, d_vol=options.d_vol, d_enc_ff=options.d_ff,n_enc_head=options.n_head,n_enc_blocks=options.layers,enc_dropout=options.dropout)
+    else:
+        model = POS_predictor(options.l_vocab, d_latent=options.d_latent, d_dec_ff=options.d_dec_ff, dec_dropout=options.dec_dropout, n_dec_head=options.n_dec_head, n_dec_blocks=options.n_dec_blocks, d_vol=options.d_vol, d_enc_ff=options.d_ff,n_enc_head=options.n_head,n_enc_blocks=options.layers,enc_dropout=options.dropout)
+    return model
+
+def build_pos_decoder(options):
+    model = POS_Decoder(options.l_vocab, d_latent=options.d_latent, d_ff=options.d_dec_ff, dropout=options.dec_dropout, n_head=options.n_dec_head, n_blocks=options.n_dec_blocks)
     return model
 
 class Trainer:
@@ -698,14 +706,14 @@ class POS_Predictor_Trainer:
             pos_input_one_hot = F.one_hot(pos_input, num_classes=20).float()   # Shape: (batch_size, seq_len+1, 20)
             pos_target_one_hot = F.one_hot(pos_target, num_classes=20).float()   # Shape: (batch_size, seq_len+1, 20)
 
-            print(pos_input[0,:10])
-            print(pos_target[0,:10])
+            #print(pos_input[0,:10])
+            #print(pos_target[0,:10])
 
             if self.options.model == 'TCAE':        
-                output = self.model(signal, pos_tokens=pos_input_one_hot)
-                print("Shapes:")
-                print(output.shape)
-                print(pos_target_one_hot.shape)
+                output = self.model(signal, pos_input_one_hot)
+                #print("Shapes:")
+                #print(output.shape)
+                #print(pos_target_one_hot.shape)
 
                 loss = self.loss(output.reshape(-1,len(pos_tags)), pos_target.reshape(-1), self.options.pred_loss_type)
                 total_loss.update(loss.item())
@@ -742,27 +750,32 @@ class POS_Predictor_Trainer:
 
         with torch.no_grad():
             for iter, data in enumerate(self.val_loader):
-                signal = data[0].to(self.options.device).float()               
+                signal = data[0].to(self.options.device).float()
                 label = data[1].to(self.options.device).long()
+                
+                batch_size = label.shape[0]
+                seq_len = label.shape[1]  # Assuming label has shape (batch, seq_len)
 
-                pos_input = np.full(len(label) + 1, pos_tags["PAD"])
-                pos_target = np.full(len(label) + 1, pos_tags["PAD"])
+                pos_input = torch.full((batch_size, seq_len + 1), pos_tags["PAD"], dtype=torch.long, device=self.options.device)
+                pos_target = torch.full((batch_size, seq_len + 1), pos_tags["PAD"], dtype=torch.long, device=self.options.device)
 
-                pos_input[0] = pos_tags["START"]
-                pos_input[1:len(label)+1] = label
-                pos_target[:len(label)] = label
+                # Assign values for shifted positions
+                pos_input[:, 0] = pos_tags["START"]
+                pos_input[:, 1:seq_len+1] = label
+                pos_target[:, :seq_len] = label
 
-                indices = torch.nonzero(label == pos_tags["PAD"], as_tuple=True)[0]
-                first_index = indices[0].item() if len(indices) > 0 else None
-                pos_target[first_index] = pos_tags["END"]
+                # Find the first occurrence of PAD and replace with END
+                mask = label == pos_tags["PAD"]
+                indices = mask.int().argmax(dim=1)  # First occurrence of PAD along sequence dimension
+                valid_indices = mask.any(dim=1)  # Check if PAD exists in each sequence
+                pos_target[valid_indices, indices[valid_indices]] = pos_tags["END"]
 
                 pos_input_one_hot = F.one_hot(pos_input, num_classes=20).float()   # Shape: (batch_size, seq_len+1, 20)
                 pos_target_one_hot = F.one_hot(pos_target, num_classes=20).float()   # Shape: (batch_size, seq_len+1, 20)
-                
 
 
                 if self.options.model == 'TCAE':        
-                    output = self.model(signal, pos_input)
+                    output = self.model(signal, pos_input_one_hot)
                     #print("Shapes:")
                     #print(output.shape)
                     #print(pos_target_one_hot.shape)
@@ -938,3 +951,263 @@ class Predictor_Tester:
 
     def save(self, fname, array):
         np.save(fname, array)
+
+
+class POS_Decoder_Trainer:
+    """
+    Trainer.
+
+    Configuration for the POS decoder trainer is provided by the argument 'options'. 
+    Must contain the following fields:
+
+    Args:
+        options('argparse.Namespace'): Options for the trainer.
+        data_module('object'): Data module class for the used datasets.
+    """
+    def __init__(self, options, data_module):
+        self.options = options
+
+        # setup model, optimizer and scheduler
+        self.model = build_pos_decoder(self.options)
+        self.model = self.model.to(self.options.device)
+
+        if options.data_parallel:
+            self.model = torch.nn.DataParallel(self.model)
+            self.model.device_ids = [0,1]
+        self.optimizer = build_optimizer(self.options.lr, self.options.weight_decay, self.model.parameters())
+        self.scheduler = build_lr_scheduler(self.options, self.optimizer)
+        
+
+        # setup the dataloader
+        self.train_loader, self.val_loader, _ = data_module._setup_dataloaders()
+
+        self.epoch = 0
+        self.start_epoch = 0
+        self.end_epoch = options.num_epochs
+
+        self.best_val_loss = np.inf
+        self.best_epoch = 0
+
+        # setup saving, writer, and logging
+        options.exp_dir.mkdir(parents=True, exist_ok=True)
+        options.inference_dir.mkdir(parents=True, exist_ok=True)
+
+        with open(os.path.join(str(options.exp_dir), 'args.pkl'), "wb") as f:
+            pickle.dump(options.__dict__, f)
+
+        self.writer = SummaryWriter(log_dir=options.exp_dir / 'summary')
+
+        logging.basicConfig(level=logging.INFO)
+        self.logger = logging.getLogger(__name__)
+        self.logger.info(self.options)
+        self.logger.info(self.model)
+
+    def load_checkpoint(self):
+        if self.options.resume:
+            self.load()
+
+    def __call__(self):
+        self.load_checkpoint()
+        return self.train()
+
+    def train(self):
+        for epoch in range(self.start_epoch, self.end_epoch):
+            self.epoch = epoch
+            train_loss, train_time = self.train_epoch(self.epoch)
+            self.scheduler.step()
+            val_loss, val_time = self.evaluate_epoch()
+
+            is_best = val_loss < self.best_val_loss
+            self.best_val_loss = min(self.best_val_loss, val_loss)
+            if self.options.save_model:
+                self.save_model(is_best)
+            self.logger.info(
+                f'Epoch = [{1 + self.epoch:3d}/{self.options.num_epochs:3d}] Train_Loss = {train_loss:.4g} '
+                f'Val_Loss = {val_loss:.4g} Train_Time = {train_time:.4f}s Val_Time = {val_time:.4f}s',
+            )
+            if is_best:
+                self.best_epoch = epoch
+            print('Best epoch: ',self.best_epoch)
+            print('Waiting: ', epoch-self.best_epoch)
+            if (epoch-self.best_epoch) >= self.options.early_stop:
+                print("######### Early Stop #########")
+                break
+        self.writer.close()
+
+    def train_epoch(self, epoch):
+        self.model.train()
+        if self.options.freeze == True:
+            self.model.encoder.eval()
+            for param in self.encoder.parameters():
+                param.requires_grad = False
+
+        total_loss = AverageMeter()
+        batch_time = AverageMeter()
+        pred_acc = AverageMeter()
+        start_epoch = time.perf_counter()
+
+        for iter, data in enumerate(self.train_loader):
+            start_iter = time.perf_counter()
+            label = data[0].to(self.options.device).long()
+            
+            batch_size = label.shape[0]
+            seq_len = label.shape[1]  # Assuming label has shape (batch, seq_len)
+
+            pos_input = torch.full((batch_size, seq_len + 1), pos_tags["PAD"], dtype=torch.long, device=self.options.device)
+            pos_target = torch.full((batch_size, seq_len + 1), pos_tags["PAD"], dtype=torch.long, device=self.options.device)
+
+            # Assign values for shifted positions
+            pos_input[:, 0] = pos_tags["START"]
+            pos_input[:, 1:seq_len+1] = label
+            pos_target[:, :seq_len] = label
+
+            # Find the first occurrence of PAD and replace with END
+            mask = label == pos_tags["PAD"]
+            indices = mask.int().argmax(dim=1)  # First occurrence of PAD along sequence dimension
+            valid_indices = mask.any(dim=1)  # Check if PAD exists in each sequence
+            pos_target[valid_indices, indices[valid_indices]] = pos_tags["END"]
+
+            pos_input_one_hot = F.one_hot(pos_input, num_classes=20).float()   # Shape: (batch_size, seq_len+1, 20)
+            pos_target_one_hot = F.one_hot(pos_target, num_classes=20).float()   # Shape: (batch_size, seq_len+1, 20)
+
+            #print(pos_input[0,:10])
+            #print(pos_target[0,:10])
+
+            if self.options.model == 'TCAE':
+                dummy_signal = torch.zeros(options.batch_size, 10, options.d_latent).to(device)      
+                output = self.model(pos_input_one_hot, dummy_signal)
+                #print("Shapes:")
+                #print(output.shape)
+                #print(pos_target_one_hot.shape)
+
+                loss = self.loss(output.reshape(-1,len(pos_tags)), pos_target.reshape(-1), self.options.pred_loss_type)
+                total_loss.update(loss.item())
+            else:
+                print("Not Supported")
+
+            acc = accuracy(output.reshape(-1,len(pos_tags)), pos_target.reshape(-1))
+            pred_acc.update(acc[0].item())
+            
+            self.optimizer.zero_grad()
+            loss.backward()
+            self.optimizer.step()
+
+            if iter % self.options.report_period == 0:
+                print('Epoch[{0}][{1}/{2}]\t'
+                    'Time {batch_time.avg:.3f} ({batch_time.val:.3f})\t' 
+                    'Loss {total_loss.avg:.4f} ({total_loss.val:.4f})\t'
+                    'Acc {pred_acc.avg:.4f} ({pred_acc.val:.4f})'.format(
+                    epoch, iter, len(self.train_loader), batch_time = batch_time, total_loss = total_loss, pred_acc = pred_acc))
+
+            batch_time.update(time.perf_counter()-start_iter)
+               
+        self.writer.add_scalar('Train_Loss', total_loss.avg, self.epoch)
+        print('Train Time {0} \t Train Loss {1}'.format(time.perf_counter() - start_epoch, total_loss.avg))
+
+        return total_loss.avg, time.perf_counter() - start_epoch
+
+    def evaluate_epoch(self):
+        self.model.eval()
+
+        total_loss = AverageMeter()
+        pred_acc = AverageMeter()
+        start_epoch = time.perf_counter()
+
+        with torch.no_grad():
+            for iter, data in enumerate(self.val_loader):
+                signal = data[0].to(self.options.device).float()
+                label = data[1].to(self.options.device).long()
+                
+                batch_size = label.shape[0]
+                seq_len = label.shape[1]  # Assuming label has shape (batch, seq_len)
+
+                pos_input = torch.full((batch_size, seq_len + 1), pos_tags["PAD"], dtype=torch.long, device=self.options.device)
+                pos_target = torch.full((batch_size, seq_len + 1), pos_tags["PAD"], dtype=torch.long, device=self.options.device)
+
+                # Assign values for shifted positions
+                pos_input[:, 0] = pos_tags["START"]
+                pos_input[:, 1:seq_len+1] = label
+                pos_target[:, :seq_len] = label
+
+                # Find the first occurrence of PAD and replace with END
+                mask = label == pos_tags["PAD"]
+                indices = mask.int().argmax(dim=1)  # First occurrence of PAD along sequence dimension
+                valid_indices = mask.any(dim=1)  # Check if PAD exists in each sequence
+                pos_target[valid_indices, indices[valid_indices]] = pos_tags["END"]
+
+                pos_input_one_hot = F.one_hot(pos_input, num_classes=20).float()   # Shape: (batch_size, seq_len+1, 20)
+                pos_target_one_hot = F.one_hot(pos_target, num_classes=20).float()   # Shape: (batch_size, seq_len+1, 20)
+
+
+                if self.options.model == 'TCAE':        
+                    output = self.model(signal, pos_input_one_hot)
+                    #print("Shapes:")
+                    #print(output.shape)
+                    #print(pos_target_one_hot.shape)
+
+                    loss = self.loss(output.reshape(-1,len(pos_tags)), pos_target.reshape(-1), self.options.pred_loss_type)
+                    total_loss.update(loss.item())
+                else:
+                    print("Not Supported")
+
+            acc = accuracy(output.reshape(-1,len(pos_tags)), pos_target.reshape(-1))
+            pred_acc.update(acc[0].item())
+
+            self.writer.add_scalar('Val_Loss', total_loss.avg, self.epoch)
+            print('Val Time {0} \t Val Loss {1} \t Val Acc {2}'.format(time.perf_counter() - start_epoch, total_loss.avg, pred_acc.avg))
+
+        return total_loss.avg, time.perf_counter() - start_epoch
+
+    def loss(self, input, target, loss_type):
+        """
+        Args:
+            input: reconstructed time series
+            target: original time series
+            loss_type: the type of loss function         
+        """
+        # Reconstruction Loss
+        if loss_type == 'cross_entropy':
+            # print('input: ',input.shape)
+            # print('target: ',np.unique(target.detach().cpu().numpy()))
+            loss = F.cross_entropy(input,target,ignore_index=pos_tags["PAD"])
+        #elif loss_type == 'mse':
+        #    loss = F.mse_loss(input,target)
+        else:
+            raise NotImplementedError()
+
+        return loss
+
+    def load(self):
+        self.model = build_pos_predictor(self.options)
+        if self.options.data_parallel:
+            self.model = torch.nn.DataParallel(self.model)
+
+        checkpoint_tmp = torch.load(self.options.checkpoint)
+        print("Load checkpoint {} with loss {}".format(checkpoint_tmp['epoch'], checkpoint_tmp['best_val_loss']))
+        self.best_val_loss = checkpoint_tmp['best_val_loss']
+        self.best_epoch = checkpoint_tmp['best_epoch']
+        self.start_epoch = checkpoint_tmp['epoch'] + 1
+        
+        self.model.load_state_dict(checkpoint_tmp['model'])
+
+        self.optimizer = build_optimizer(self.options.lr, self.options.weight_decay, self.model.parameters())
+        self.optimizer.load_state_dict(checkpoint_tmp['optimizer'])
+        self.scheduler = build_lr_scheduler(self.options, self.optimizer,self.start_epoch)
+        
+
+    def save_model(self,is_best):
+        exp_dir = self.options.exp_dir
+        torch.save(
+            {
+                'epoch': self.epoch,
+                'options': self.options,
+                'model': self.model.state_dict(),
+                'optimizer': self.optimizer.state_dict(),
+                'best_val_loss': self.best_val_loss,
+                'exp_dir': exp_dir,
+                'best_epoch': self.best_epoch  # Save the best epoch
+            },
+            f = exp_dir / 'predictor_model.pt'
+        )
+        if is_best:
+            shutil.copyfile(exp_dir / 'predictor_model.pt', exp_dir / 'best_predictor_model.pt')

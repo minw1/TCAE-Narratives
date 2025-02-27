@@ -1,0 +1,260 @@
+/var/spool/slurmd/job14641733/slurm_script: line 13: activate: No such file or directory
+INFO:train_frame:Namespace(model='TCAE', tasks='all', seg_length=10, bold_delay=4.5, layers=2, d_vol=81924, d_emd1=256, d_emd2=128, d_latent=128, d_ff=512, n_head=8, dropout=0.05, num_class=3, mid_planes=32, pred_loss_type='cross_entropy', predict=True, l_vocab=20, n_dec_blocks=4, d_dec_ff=512, n_dec_head=4, dec_dropout=0.0, batch_size=16, num_epochs=100, report_period=10, loss_type='mse', lr=0.001, lr_step_size=15, lr_gamma=0.5, weight_decay=0.0, early_stop=100, num_workers=2, device='cuda', data_parallel=True, exp_dir=PosixPath('/home/wsm32/project/wsm_thesis_scratch/narratives/rt_large/pos_2_4_lang_only'), save_model=True, save_embedding=True, checkpoint=None, encoder_base='/home/wsm32/project/wsm_thesis_scratch/narratives/rt_large/0.001-0.5-2-128-0.05-8-16/best_model.pt', seed=0, test=False, freeze=False, language_only=True, resume=False, inference_dir=PosixPath('/home/wsm32/project/wsm_thesis_scratch/narratives/rt_large/pos_2_4_lang_only/inference'))
+INFO:train_frame:DataParallel(
+  (module): No_Scans_POS_Decoder(
+    (embed): Embeddings(
+      (lut): Linear(in_features=20, out_features=128, bias=True)
+    )
+    (pos_encoder): PositionalEncoding(
+      (dropout): Dropout(p=0.0, inplace=False)
+    )
+    (dec_layer): TransformerEncoderLayer(
+      (self_attn): MultiheadAttention(
+        (out_proj): NonDynamicallyQuantizableLinear(in_features=128, out_features=128, bias=True)
+      )
+      (linear1): Linear(in_features=128, out_features=512, bias=True)
+      (dropout): Dropout(p=0.0, inplace=False)
+      (linear2): Linear(in_features=512, out_features=128, bias=True)
+      (norm1): LayerNorm((128,), eps=1e-05, elementwise_affine=True)
+      (norm2): LayerNorm((128,), eps=1e-05, elementwise_affine=True)
+      (dropout1): Dropout(p=0.0, inplace=False)
+      (dropout2): Dropout(p=0.0, inplace=False)
+    )
+    (dec): TransformerEncoder(
+      (layers): ModuleList(
+        (0-3): 4 x TransformerEncoderLayer(
+          (self_attn): MultiheadAttention(
+            (out_proj): NonDynamicallyQuantizableLinear(in_features=128, out_features=128, bias=True)
+          )
+          (linear1): Linear(in_features=128, out_features=512, bias=True)
+          (dropout): Dropout(p=0.0, inplace=False)
+          (linear2): Linear(in_features=512, out_features=128, bias=True)
+          (norm1): LayerNorm((128,), eps=1e-05, elementwise_affine=True)
+          (norm2): LayerNorm((128,), eps=1e-05, elementwise_affine=True)
+          (dropout1): Dropout(p=0.0, inplace=False)
+          (dropout2): Dropout(p=0.0, inplace=False)
+        )
+      )
+      (norm): LayerNorm((128,), eps=1e-05, elementwise_affine=True)
+    )
+    (token_predict): Linear(in_features=128, out_features=20, bias=True)
+  )
+)
+save logs to /home/wsm32/project/wsm_thesis_scratch/narratives/rt_large/pos_2_4_lang_only
+Train the Predictor
+creating pieman loaders...
+Task Loader, #0 has 73subjects. And 22 segements.
+Task Loader, #1 has 73subjects. And 2 segements.
+Task Loader, #2 has 73subjects. And 4 segements.
+creating tunnel loaders...
+Task Loader, #0 has 21subjects. And 81 segements.
+Task Loader, #1 has 21subjects. And 10 segements.
+Task Loader, #2 has 21subjects. And 11 segements.
+creating lucy loaders...
+Task Loader, #0 has 14subjects. And 28 segements.
+Task Loader, #1 has 14subjects. And 3 segements.
+Task Loader, #2 has 14subjects. And 5 segements.
+creating prettymouth loaders...
+Task Loader, #0 has 38subjects. And 36 segements.
+Task Loader, #1 has 38subjects. And 4 segements.
+Task Loader, #2 has 38subjects. And 5 segements.
+creating milkywayoriginal loaders...
+Task Loader, #0 has 0subjects. And 20 segements.
+Task Loader, #1 has 0subjects. And 2 segements.
+Task Loader, #2 has 0subjects. And 4 segements.
+creating slumlordreach loaders...
+Task Loader, #0 has 17subjects. And 48 segements.
+Task Loader, #1 has 17subjects. And 6 segements.
+Task Loader, #2 has 17subjects. And 6 segements.
+creating notthefallintact loaders...
+Task Loader, #0 has 54subjects. And 28 segements.
+Task Loader, #1 has 54subjects. And 3 segements.
+Task Loader, #2 has 54subjects. And 5 segements.
+creating 21styear loaders...
+Task Loader, #0 has 25subjects. And 177 segements.
+Task Loader, #1 has 25subjects. And 22 segements.
+Task Loader, #2 has 25subjects. And 23 segements.
+creating bronx loaders...
+Task Loader, #0 has 47subjects. And 28 segements.
+Task Loader, #1 has 47subjects. And 3 segements.
+Task Loader, #2 has 47subjects. And 4 segements.
+creating black loaders...
+Task Loader, #0 has 46subjects. And 42 segements.
+Task Loader, #1 has 46subjects. And 5 segements.
+Task Loader, #2 has 46subjects. And 6 segements.
+creating forgot loaders...
+Task Loader, #0 has 46subjects. And 44 segements.
+Task Loader, #1 has 46subjects. And 5 segements.
+Task Loader, #2 has 46subjects. And 6 segements.
+/home/wsm32/.conda/envs/tcae/lib/python3.12/site-packages/torch/nn/modules/linear.py:125: UserWarning: Attempting to run cuBLAS, but there was no current CUDA context! Attempting to set the primary context... (Triggered internally at /opt/conda/conda-bld/pytorch_1729647378361/work/aten/src/ATen/cuda/CublasHandlePool.cpp:135.)
+  return F.linear(input, self.weight, self.bias)
+Epoch[0][0/1068]	Time 0.000 (0.000)	Loss 3.0537 (3.0537)	Acc 2.7228 (2.7228)
+Epoch[0][10/1068]	Time 0.202 (0.070)	Loss 2.4242 (2.0986)	Acc 10.3060 (15.5322)
+Epoch[0][20/1068]	Time 0.138 (0.080)	Loss 2.2809 (2.1172)	Acc 11.8046 (12.5000)
+Epoch[0][30/1068]	Time 0.115 (0.070)	Loss 2.2083 (2.1151)	Acc 12.2265 (12.8713)
+Epoch[0][40/1068]	Time 0.104 (0.071)	Loss 2.1632 (2.0204)	Acc 12.6917 (13.4901)
+Epoch[0][50/1068]	Time 0.098 (0.072)	Loss 2.1343 (2.0631)	Acc 12.7512 (11.8193)
+Epoch[0][60/1068]	Time 0.094 (0.071)	Loss 2.1161 (2.0623)	Acc 12.9007 (14.1708)
+Epoch[0][70/1068]	Time 0.091 (0.070)	Loss 2.1032 (2.0496)	Acc 12.9846 (13.6139)
+Epoch[0][80/1068]	Time 0.090 (0.070)	Loss 2.0942 (2.0305)	Acc 13.0149 (14.6658)
+Epoch[0][90/1068]	Time 0.088 (0.074)	Loss 2.0803 (2.0787)	Acc 13.1073 (11.2624)
+Epoch[0][100/1068]	Time 0.088 (0.082)	Loss 2.0703 (2.0922)	Acc 13.2070 (12.3762)
+Epoch[0][110/1068]	Time 0.087 (0.080)	Loss 2.0634 (1.9841)	Acc 13.2258 (14.1708)
+Epoch[0][120/1068]	Time 0.087 (0.081)	Loss 2.0555 (1.9547)	Acc 13.2646 (13.7995)
+Epoch[0][130/1068]	Time 0.086 (0.080)	Loss 2.0472 (1.9631)	Acc 13.3139 (11.8812)
+Epoch[0][140/1068]	Time 0.086 (0.083)	Loss 2.0408 (1.9653)	Acc 13.3712 (14.1089)
+Epoch[0][150/1068]	Time 0.086 (0.082)	Loss 2.0348 (1.9503)	Acc 13.4348 (16.3985)
+Epoch[0][160/1068]	Time 0.085 (0.073)	Loss 2.0280 (1.8768)	Acc 13.4601 (13.8614)
+Epoch[0][170/1068]	Time 0.085 (0.074)	Loss 2.0240 (1.9028)	Acc 13.4774 (15.1609)
+Epoch[0][180/1068]	Time 0.085 (0.085)	Loss 2.0170 (1.9410)	Acc 13.5575 (14.2946)
+Epoch[0][190/1068]	Time 0.084 (0.077)	Loss 2.0131 (1.8602)	Acc 13.5808 (15.5941)
+Epoch[0][200/1068]	Time 0.084 (0.081)	Loss 2.0098 (1.9596)	Acc 13.6077 (15.0990)
+Epoch[0][210/1068]	Time 0.084 (0.076)	Loss 2.0052 (2.0060)	Acc 13.6643 (12.3144)
+Epoch[0][220/1068]	Time 0.084 (0.080)	Loss 2.0011 (1.9438)	Acc 13.7029 (14.6040)
+Epoch[0][230/1068]	Time 0.084 (0.079)	Loss 1.9980 (1.8877)	Acc 13.7250 (15.9035)
+Epoch[0][240/1068]	Time 0.084 (0.081)	Loss 1.9948 (1.9271)	Acc 13.7430 (13.2426)
+Epoch[0][250/1068]	Time 0.084 (0.079)	Loss 1.9915 (1.9214)	Acc 13.7591 (14.2327)
+Epoch[0][260/1068]	Time 0.084 (0.082)	Loss 1.9881 (1.9201)	Acc 13.7815 (14.6658)
+Epoch[0][270/1068]	Time 0.084 (0.080)	Loss 1.9853 (1.9044)	Acc 13.8205 (16.0891)
+Epoch[0][280/1068]	Time 0.084 (0.086)	Loss 1.9819 (1.8884)	Acc 13.8251 (13.6139)
+Epoch[0][290/1068]	Time 0.084 (0.080)	Loss 1.9784 (1.8622)	Acc 13.8561 (15.5941)
+Epoch[0][300/1068]	Time 0.084 (0.079)	Loss 1.9751 (1.9873)	Acc 13.8729 (13.1188)
+Epoch[0][310/1068]	Time 0.084 (0.080)	Loss 1.9720 (1.9744)	Acc 13.8898 (13.4282)
+Epoch[0][320/1068]	Time 0.084 (0.076)	Loss 1.9694 (1.9162)	Acc 13.9040 (11.6955)
+Epoch[0][330/1068]	Time 0.084 (0.080)	Loss 1.9657 (1.7503)	Acc 13.9466 (16.2129)
+Epoch[0][340/1068]	Time 0.084 (0.080)	Loss 1.9618 (1.7726)	Acc 13.9913 (16.3366)
+Epoch[0][350/1068]	Time 0.084 (0.080)	Loss 1.9589 (1.8364)	Acc 13.9781 (15.1609)
+Epoch[0][360/1068]	Time 0.084 (0.079)	Loss 1.9562 (1.8941)	Acc 14.0170 (15.5322)
+Epoch[0][370/1068]	Time 0.083 (0.090)	Loss 1.9521 (1.8865)	Acc 14.0494 (14.5421)
+Epoch[0][380/1068]	Time 0.083 (0.090)	Loss 1.9496 (1.7661)	Acc 14.0819 (15.3465)
+Epoch[0][390/1068]	Time 0.083 (0.079)	Loss 1.9460 (1.7663)	Acc 14.1277 (14.1708)
+Epoch[0][400/1068]	Time 0.083 (0.082)	Loss 1.9432 (1.8750)	Acc 14.1416 (15.0371)
+Epoch[0][410/1068]	Time 0.083 (0.081)	Loss 1.9394 (1.7561)	Acc 14.1934 (16.7079)
+Epoch[0][420/1068]	Time 0.083 (0.099)	Loss 1.9357 (1.7984)	Acc 14.2534 (16.6460)
+Epoch[0][430/1068]	Time 0.084 (0.080)	Loss 1.9317 (1.7715)	Acc 14.3056 (15.3465)
+Epoch[0][440/1068]	Time 0.084 (0.084)	Loss 1.9283 (1.7256)	Acc 14.3428 (15.4084)
+Epoch[0][450/1068]	Time 0.083 (0.069)	Loss 1.9232 (1.7632)	Acc 14.4068 (17.0173)
+Epoch[0][460/1068]	Time 0.083 (0.091)	Loss 1.9183 (1.6737)	Acc 14.4551 (16.8936)
+Epoch[0][470/1068]	Time 0.083 (0.078)	Loss 1.9151 (1.8447)	Acc 14.4836 (14.9134)
+Epoch[0][480/1068]	Time 0.083 (0.087)	Loss 1.9113 (1.7872)	Acc 14.5367 (17.6980)
+Epoch[0][490/1068]	Time 0.083 (0.081)	Loss 1.9075 (1.6124)	Acc 14.5693 (18.0693)
+Epoch[0][500/1068]	Time 0.083 (0.078)	Loss 1.9030 (1.5595)	Acc 14.6138 (20.2351)
+Epoch[0][510/1068]	Time 0.083 (0.083)	Loss 1.8990 (1.5935)	Acc 14.6526 (16.7698)
+Epoch[0][520/1068]	Time 0.083 (0.080)	Loss 1.8949 (1.7529)	Acc 14.6955 (17.2649)
+Epoch[0][530/1068]	Time 0.083 (0.082)	Loss 1.8911 (1.8897)	Acc 14.7352 (14.6040)
+Epoch[0][540/1068]	Time 0.083 (0.082)	Loss 1.8874 (1.6943)	Acc 14.7655 (17.7599)
+Epoch[0][550/1068]	Time 0.083 (0.081)	Loss 1.8827 (1.5742)	Acc 14.8186 (18.6881)
+Epoch[0][560/1068]	Time 0.083 (0.081)	Loss 1.8796 (1.7823)	Acc 14.8559 (15.3465)
+Epoch[0][570/1068]	Time 0.083 (0.082)	Loss 1.8747 (1.6380)	Acc 14.9061 (15.7178)
+Epoch[0][580/1068]	Time 0.083 (0.091)	Loss 1.8702 (1.7137)	Acc 14.9658 (15.4703)
+Epoch[0][590/1068]	Time 0.083 (0.083)	Loss 1.8649 (1.4479)	Acc 15.0208 (20.1114)
+Epoch[0][600/1068]	Time 0.083 (0.081)	Loss 1.8589 (1.4573)	Acc 15.0896 (20.4208)
+Epoch[0][610/1068]	Time 0.083 (0.082)	Loss 1.8546 (1.5857)	Acc 15.1401 (18.9975)
+Epoch[0][620/1068]	Time 0.083 (0.090)	Loss 1.8496 (1.5804)	Acc 15.1932 (19.3069)
+Epoch[0][630/1068]	Time 0.083 (0.080)	Loss 1.8444 (1.5470)	Acc 15.2583 (18.9975)
+Epoch[0][640/1068]	Time 0.083 (0.088)	Loss 1.8393 (1.5672)	Acc 15.3143 (18.8738)
+Epoch[0][650/1068]	Time 0.083 (0.083)	Loss 1.8338 (1.2862)	Acc 15.3737 (22.5866)
+Epoch[0][660/1068]	Time 0.083 (0.088)	Loss 1.8281 (1.4504)	Acc 15.4497 (22.8342)
+Epoch[0][670/1068]	Time 0.083 (0.086)	Loss 1.8222 (1.3350)	Acc 15.5247 (21.5965)
+Epoch[0][680/1068]	Time 0.083 (0.084)	Loss 1.8163 (1.4325)	Acc 15.5977 (22.0297)
+Epoch[0][690/1068]	Time 0.083 (0.081)	Loss 1.8101 (1.3989)	Acc 15.6673 (19.3069)
+Epoch[0][700/1068]	Time 0.083 (0.080)	Loss 1.8037 (1.4594)	Acc 15.7492 (19.6782)
+Epoch[0][710/1068]	Time 0.083 (0.079)	Loss 1.7968 (1.2620)	Acc 15.8302 (22.6485)
+Epoch[0][720/1068]	Time 0.083 (0.084)	Loss 1.7906 (1.2201)	Acc 15.9176 (24.0099)
+Epoch[0][730/1068]	Time 0.083 (0.082)	Loss 1.7841 (1.3089)	Acc 15.9885 (24.0099)
+Epoch[0][740/1068]	Time 0.083 (0.081)	Loss 1.7786 (1.4665)	Acc 16.0522 (19.0594)
+Epoch[0][750/1068]	Time 0.083 (0.081)	Loss 1.7728 (1.3958)	Acc 16.1180 (19.4926)
+Epoch[0][760/1068]	Time 0.083 (0.088)	Loss 1.7665 (1.2390)	Acc 16.1960 (23.4530)
+Epoch[0][770/1068]	Time 0.083 (0.092)	Loss 1.7608 (1.5310)	Acc 16.2646 (19.6782)
+Epoch[0][780/1068]	Time 0.083 (0.081)	Loss 1.7549 (1.3292)	Acc 16.3330 (18.5025)
+Epoch[0][790/1068]	Time 0.083 (0.081)	Loss 1.7494 (1.1903)	Acc 16.4052 (20.1114)
+Epoch[0][800/1068]	Time 0.083 (0.091)	Loss 1.7429 (1.2302)	Acc 16.4903 (23.3292)
+Epoch[0][810/1068]	Time 0.083 (0.090)	Loss 1.7362 (1.0983)	Acc 16.5807 (20.8540)
+Epoch[0][820/1068]	Time 0.083 (0.087)	Loss 1.7288 (1.1745)	Acc 16.6812 (26.1139)
+Epoch[0][830/1068]	Time 0.083 (0.081)	Loss 1.7216 (1.1187)	Acc 16.7759 (27.0421)
+Epoch[0][840/1068]	Time 0.083 (0.080)	Loss 1.7160 (1.2015)	Acc 16.8588 (22.6485)
+Epoch[0][850/1068]	Time 0.083 (0.079)	Loss 1.7096 (1.1835)	Acc 16.9306 (22.9579)
+Epoch[0][860/1068]	Time 0.083 (0.081)	Loss 1.7037 (1.2102)	Acc 16.9993 (18.6262)
+Epoch[0][870/1068]	Time 0.083 (0.091)	Loss 1.6968 (1.0976)	Acc 17.0772 (22.2153)
+Epoch[0][880/1068]	Time 0.083 (0.079)	Loss 1.6903 (1.1039)	Acc 17.1566 (23.0817)
+Epoch[0][890/1068]	Time 0.083 (0.089)	Loss 1.6838 (1.2548)	Acc 17.2430 (25.7426)
+Epoch[0][900/1068]	Time 0.083 (0.085)	Loss 1.6777 (0.9896)	Acc 17.3306 (27.4752)
+Epoch[0][910/1068]	Time 0.083 (0.086)	Loss 1.6709 (1.0503)	Acc 17.4185 (22.2772)
+Epoch[0][920/1068]	Time 0.083 (0.083)	Loss 1.6643 (1.1110)	Acc 17.4950 (21.4728)
+Epoch[0][930/1068]	Time 0.083 (0.092)	Loss 1.6584 (1.0303)	Acc 17.5701 (24.8762)
+Epoch[0][940/1068]	Time 0.083 (0.079)	Loss 1.6515 (0.9515)	Acc 17.6645 (28.5272)
+Epoch[0][950/1068]	Time 0.083 (0.081)	Loss 1.6444 (0.8028)	Acc 17.7614 (31.3738)
+Epoch[0][960/1068]	Time 0.083 (0.081)	Loss 1.6375 (0.9921)	Acc 17.8434 (23.0817)
+Epoch[0][970/1068]	Time 0.083 (0.083)	Loss 1.6293 (0.8002)	Acc 17.9376 (26.9802)
+Epoch[0][980/1068]	Time 0.083 (0.081)	Loss 1.6225 (0.8093)	Acc 18.0306 (28.5891)
+Epoch[0][990/1068]	Time 0.083 (0.080)	Loss 1.6150 (0.7679)	Acc 18.1311 (27.5371)
+Epoch[0][1000/1068]	Time 0.083 (0.081)	Loss 1.6076 (0.8407)	Acc 18.2199 (29.2698)
+Epoch[0][1010/1068]	Time 0.083 (0.082)	Loss 1.6006 (0.9027)	Acc 18.2984 (25.9901)
+Epoch[0][1020/1068]	Time 0.083 (0.082)	Loss 1.5935 (1.0693)	Acc 18.3888 (23.3292)
+Epoch[0][1030/1068]	Time 0.083 (0.081)	Loss 1.5869 (0.8001)	Acc 18.4731 (28.7129)
+Epoch[0][1040/1068]	Time 0.083 (0.082)	Loss 1.5801 (0.7528)	Acc 18.5603 (26.8564)
+Epoch[0][1050/1068]	Time 0.083 (0.082)	Loss 1.5728 (0.7978)	Acc 18.6502 (27.9084)
+Epoch[0][1060/1068]	Time 0.083 (0.081)	Loss 1.5657 (0.8326)	Acc 18.7400 (25.4332)
+Train Time 597.57777476497 	 Train Loss 1.5610456516345341
+Traceback (most recent call last):
+  File "/gpfs/gibbs/project/frank/wsm32/wsm_thesis_scratch/narratives/code/fMRI-Embedding-narratives/rt_main.py", line 124, in <module>
+    policy()
+  File "/gpfs/gibbs/project/frank/wsm32/wsm_thesis_scratch/narratives/code/fMRI-Embedding-narratives/train_frame.py", line 642, in __call__
+    return self.train()
+           ^^^^^^^^^^^^
+  File "/gpfs/gibbs/project/frank/wsm32/wsm_thesis_scratch/narratives/code/fMRI-Embedding-narratives/train_frame.py", line 649, in train
+    val_loss, val_time = self.evaluate_epoch()
+                         ^^^^^^^^^^^^^^^^^^^^^
+  File "/gpfs/gibbs/project/frank/wsm32/wsm_thesis_scratch/narratives/code/fMRI-Embedding-narratives/train_frame.py", line 774, in evaluate_epoch
+    output = self.model(signal, pos_input_one_hot)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/wsm32/.conda/envs/tcae/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/wsm32/.conda/envs/tcae/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/wsm32/.conda/envs/tcae/lib/python3.12/site-packages/torch/nn/parallel/data_parallel.py", line 193, in forward
+    outputs = self.parallel_apply(replicas, inputs, module_kwargs)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/wsm32/.conda/envs/tcae/lib/python3.12/site-packages/torch/nn/parallel/data_parallel.py", line 212, in parallel_apply
+    return parallel_apply(
+           ^^^^^^^^^^^^^^^
+  File "/home/wsm32/.conda/envs/tcae/lib/python3.12/site-packages/torch/nn/parallel/parallel_apply.py", line 126, in parallel_apply
+    output.reraise()
+  File "/home/wsm32/.conda/envs/tcae/lib/python3.12/site-packages/torch/_utils.py", line 715, in reraise
+    raise exception
+RuntimeError: Caught RuntimeError in replica 0 on device 0.
+Original Traceback (most recent call last):
+  File "/home/wsm32/.conda/envs/tcae/lib/python3.12/site-packages/torch/nn/parallel/parallel_apply.py", line 96, in _worker
+    output = module(*input, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/wsm32/.conda/envs/tcae/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/wsm32/.conda/envs/tcae/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/gpfs/gibbs/project/frank/wsm32/wsm_thesis_scratch/narratives/code/fMRI-Embedding-narratives/pos_decoder.py", line 101, in forward
+    x = self.dec(x, mask=mask, is_causal=True)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/wsm32/.conda/envs/tcae/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/wsm32/.conda/envs/tcae/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/wsm32/.conda/envs/tcae/lib/python3.12/site-packages/torch/nn/modules/transformer.py", line 511, in forward
+    output = mod(
+             ^^^^
+  File "/home/wsm32/.conda/envs/tcae/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/wsm32/.conda/envs/tcae/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/wsm32/.conda/envs/tcae/lib/python3.12/site-packages/torch/nn/modules/transformer.py", line 871, in forward
+    return torch._transformer_encoder_layer_fwd(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: Expected all tensors to be on the same device, but found at least two devices, cuda:0 and cpu! (when checking argument for argument mask in method wrapper_CUDA___transformer_encoder_layer_fwd)
+

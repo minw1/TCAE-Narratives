@@ -83,4 +83,7 @@ for head_count in head_counts:
 for batch_size in batch_sizes:
     those = {k: v for k, v in param_vals.items() if float(k[6]) == batch_size}
     print(f"Mean for batch size={batch_size}: {np.mean(list(those.values()))}")
-print(top_models[:5])
+
+
+for i in range(144):
+    print(top_models[i])

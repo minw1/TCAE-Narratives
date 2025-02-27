@@ -41,10 +41,14 @@ if __name__ == "__main__":
     parser.add_argument('--pred_loss_type', type=str, choices=['mse','cross_entropy'], default='cross_entropy')
     parser.add_argument('--predict', action='store_true')
 
+
+    #LM Prediction Params
+    parser.add_argument('--lm_pretrain', action='store_true')
+
     #POS Predictor Params
-    parser.add_argument('--l_vocab', type=int, default=1, help='Size of language vocabulary')
-    parser.add_argument('--n_dec_blocks', type=int, default=1, help='Number of decoder layers')
-    parser.add_argument('--d_dec_ff', type=int, default=512, help='Dimension of decoder feed foward layer ')
+    parser.add_argument('--l_vocab', type=int, default=20, help='Size of language vocabulary')
+    parser.add_argument('--n_dec_blocks', type=int, default=4, help='Number of decoder layers')
+    parser.add_argument('--d_dec_ff', type=int, default=512, help='Dimension of decoder feed foward layer')
     parser.add_argument('--n_dec_head', type=int, default=4, help='Number of decoder attention heads')  
     parser.add_argument('--dec_dropout', type=float, default=0.0, help='Decoder Dropout Rate')
 
@@ -79,6 +83,7 @@ if __name__ == "__main__":
 
     parser.add_argument('--test', action='store_true')
     parser.add_argument('--freeze', action='store_true')
+    parser.add_argument('--language_only', action='store_true')
 
 
     args = parser.parse_args()
@@ -103,17 +108,20 @@ if __name__ == "__main__":
     torch.manual_seed(args.seed)
     torch.autograd.set_detect_anomaly(True)
 
-
-    data_module = RT_Narrative_Data_Module(task_list = task_list,
+    if not args.lm_pretrain:
+        data_module = RT_Narrative_Data_Module(task_list = task_list,
                                             batch_size = args.batch_size,
                                             num_workers = args.num_workers,
                                             delay = args.bold_delay,
-                                            segment_length = args.seg_length
-                                            )
+                                            segment_length = args.seg_length)
+    else:
+        data_module = LM_Data_Module("/home/wsm32/project/wsm_thesis_scratch/narratives/h5_lm/wikitext_udpos_vectors")
+                                        
 
     if args.test:
-        print
         policy = Predictor_Tester(args, data_module, args.exp_dir)
+    elif args.lm_pretrain:
+        policy = LM_Pretrainer(args, data_module)
     elif args.predict:
         print('Train the Predictor')
         policy = POS_Predictor_Trainer(args, data_module)

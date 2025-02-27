@@ -1,5 +1,6 @@
 from randomtime_data import RT_Narrative_Data_Module
 import numpy as np
+from utils import pos_tags
 
 task_list = ["pieman","tunnel","lucy","prettymouth","milkywayoriginal","slumlordreach","notthefallintact","21styear","bronx","black","forgot"]
 data_module = RT_Narrative_Data_Module(task_list, num_workers=0)
@@ -13,10 +14,11 @@ for j in range(3):
     print(f"partition {j}")
     for idx, batch in enumerate(dataloaders[j]):
         print(f"Did batch {idx} in partition {j}")
-        print(batch[0].shape)
-        print(batch[1].shape)
-        print(np.mean(batch[0].numpy()))
-        print(np.mean(np.var(batch[0].numpy(), axis=2)))
+        #print(batch[0].shape)
+        print((batch[1].numpy() == pos_tags["PAD"]).argmax(axis=1))
+        #print(batch[1][0].numpy())
+        #print(np.mean(batch[0].numpy()))
+        #print(np.mean(np.var(batch[0].numpy(), axis=2)))
 print("all done")
 
 '''

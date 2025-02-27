@@ -201,7 +201,7 @@ class RT_Narrative_Dataset(torch.utils.data.Dataset):
         seg_i = i % self.segs_per_sub
         tr_span = self.seg_idx_to_trs(self.these_seg_ids[seg_i])
 
-        with h5py.File(join(self.h5_dir, f"{self.task}_{self.task_data["valid_ids"].iloc[subj_i]}.hdf5"), "r") as f:
+        with h5py.File(join(self.h5_dir, f"{self.task}_{self.task_data['valid_ids'].iloc[subj_i]}.hdf5"), "r") as f:
             data = f["data"]
             signal = data[tr_span[0]: tr_span[1], :]
 
@@ -225,13 +225,20 @@ class RT_Narrative_Dataset(torch.utils.data.Dataset):
         else:
             sample = self.transform(signal)
 
-        #print(f"Task: {self.task}\n P_start: {tr_span[0]*self.tr_duration - self.delay - self.task_data["stim_offset"]} \n P_end: {tr_span[1]*self.tr_duration - self.delay - self.task_data["stim_offset"]}")
+        
 
         pos_seq = get_pos_seq(self.task_data["align"],tr_span[0],tr_span[1],self.task_data["stim_offset"],tr_dur=self.tr_duration, delay=self.delay)
-        #print(pos_seq)
+
+        
+
         assert(len(pos_seq) < self.max_length)
         label = np.full(self.max_length, pos_tags["PAD"]) # 17 is PAD
         label[:len(pos_seq)] = pos_seq
         #label[0] = pos_tags["START"]
         #label[len(pos_seq)+1] = pos_tags["END"]
+
+        #print(f"Task: {self.task}\n P_start: {tr_span[0]*self.tr_duration - self.delay - self.task_data["stim_offset"]} \n P_end: {tr_span[1]*self.tr_duration - self.delay - self.task_data["stim_offset"]}")
+        #print(f"open{tr_span[0]}, close{tr_span[1]}, toff:{self.task_data["stim_offset"]}")
+        #print(label)
+
         return torch.from_numpy(sample), label

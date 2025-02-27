@@ -1,0 +1,256 @@
+/var/spool/slurmd/job14198866/slurm_script: line 13: activate: No such file or directory
+/gpfs/gibbs/project/frank/wsm32/wsm_thesis_scratch/narratives/code/fMRI-Embedding-narratives/pos_decoder.py:53: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  state_dict = torch.load(checkpoint_file)['model']
+INFO:train_frame:Namespace(model='TCAE', tasks='all', seg_length=10, bold_delay=4.5, layers=2, d_vol=81924, d_emd1=256, d_emd2=128, d_latent=128, d_ff=512, n_head=8, dropout=0.05, num_class=3, mid_planes=32, pred_loss_type='cross_entropy', predict=True, l_vocab=20, n_dec_blocks=4, d_dec_ff=512, n_dec_head=4, dec_dropout=0.0, batch_size=16, num_epochs=100, report_period=10, loss_type='mse', lr=0.001, lr_step_size=15, lr_gamma=0.5, weight_decay=0.0, early_stop=100, num_workers=2, device='cuda', data_parallel=True, exp_dir=PosixPath('/home/wsm32/project/wsm_thesis_scratch/narratives/rt_large/pos_2_2'), save_model=True, save_embedding=True, checkpoint=None, encoder_base='/home/wsm32/project/wsm_thesis_scratch/narratives/rt_large/0.001-0.5-2-128-0.05-8-16/best_model.pt', seed=0, test=False, freeze=False, resume=False, inference_dir=PosixPath('/home/wsm32/project/wsm_thesis_scratch/narratives/rt_large/pos_2_2/inference'))
+INFO:train_frame:DataParallel(
+  (module): POS_predictor(
+    (encoder): Encoder(
+      (en_emd): Linear(in_features=81924, out_features=128, bias=True)
+      (pos_encoder): PositionalEncoding(
+        (dropout): Dropout(p=0.05, inplace=False)
+      )
+      (layers): ModuleList(
+        (0-1): 2 x SelfAttentionLayer(
+          (self_attn): MultiHeadedAttention(
+            (linears): ModuleList(
+              (0-3): 4 x Linear(in_features=128, out_features=128, bias=True)
+            )
+            (dropout): Dropout(p=0.1, inplace=False)
+          )
+          (feed_forward): PositionwiseFeedForward(
+            (w_1): Linear(in_features=128, out_features=512, bias=True)
+            (w_2): Linear(in_features=512, out_features=128, bias=True)
+            (dropout): Dropout(p=0.05, inplace=False)
+          )
+          (sublayer): ModuleList(
+            (0-1): 2 x ResidualConnection(
+              (norm): LayerNorm()
+              (dropout): Dropout(p=0.05, inplace=False)
+            )
+          )
+        )
+      )
+      (norm): LayerNorm()
+    )
+    (decoder): POS_Decoder(
+      (embed): Embeddings(
+        (lut): Linear(in_features=20, out_features=128, bias=True)
+      )
+      (pos_encoder): PositionalEncoding(
+        (dropout): Dropout(p=0.0, inplace=False)
+      )
+      (dec_layer): TransformerDecoderLayer(
+        (self_attn): MultiheadAttention(
+          (out_proj): NonDynamicallyQuantizableLinear(in_features=128, out_features=128, bias=True)
+        )
+        (multihead_attn): MultiheadAttention(
+          (out_proj): NonDynamicallyQuantizableLinear(in_features=128, out_features=128, bias=True)
+        )
+        (linear1): Linear(in_features=128, out_features=512, bias=True)
+        (dropout): Dropout(p=0.0, inplace=False)
+        (linear2): Linear(in_features=512, out_features=128, bias=True)
+        (norm1): LayerNorm((128,), eps=1e-05, elementwise_affine=True)
+        (norm2): LayerNorm((128,), eps=1e-05, elementwise_affine=True)
+        (norm3): LayerNorm((128,), eps=1e-05, elementwise_affine=True)
+        (dropout1): Dropout(p=0.0, inplace=False)
+        (dropout2): Dropout(p=0.0, inplace=False)
+        (dropout3): Dropout(p=0.0, inplace=False)
+      )
+      (dec): TransformerDecoder(
+        (layers): ModuleList(
+          (0-3): 4 x TransformerDecoderLayer(
+            (self_attn): MultiheadAttention(
+              (out_proj): NonDynamicallyQuantizableLinear(in_features=128, out_features=128, bias=True)
+            )
+            (multihead_attn): MultiheadAttention(
+              (out_proj): NonDynamicallyQuantizableLinear(in_features=128, out_features=128, bias=True)
+            )
+            (linear1): Linear(in_features=128, out_features=512, bias=True)
+            (dropout): Dropout(p=0.0, inplace=False)
+            (linear2): Linear(in_features=512, out_features=128, bias=True)
+            (norm1): LayerNorm((128,), eps=1e-05, elementwise_affine=True)
+            (norm2): LayerNorm((128,), eps=1e-05, elementwise_affine=True)
+            (norm3): LayerNorm((128,), eps=1e-05, elementwise_affine=True)
+            (dropout1): Dropout(p=0.0, inplace=False)
+            (dropout2): Dropout(p=0.0, inplace=False)
+            (dropout3): Dropout(p=0.0, inplace=False)
+          )
+        )
+        (norm): LayerNorm((128,), eps=1e-05, elementwise_affine=True)
+      )
+      (token_predict): Linear(in_features=128, out_features=20, bias=True)
+    )
+  )
+)
+save logs to /home/wsm32/project/wsm_thesis_scratch/narratives/rt_large/pos_2_2
+Train the Predictor
+creating pieman loaders...
+Task Loader, #0 has 73subjects. And 22 segements.
+Task Loader, #1 has 73subjects. And 2 segements.
+Task Loader, #2 has 73subjects. And 4 segements.
+creating tunnel loaders...
+Task Loader, #0 has 21subjects. And 81 segements.
+Task Loader, #1 has 21subjects. And 10 segements.
+Task Loader, #2 has 21subjects. And 11 segements.
+creating lucy loaders...
+Task Loader, #0 has 14subjects. And 28 segements.
+Task Loader, #1 has 14subjects. And 3 segements.
+Task Loader, #2 has 14subjects. And 5 segements.
+creating prettymouth loaders...
+Task Loader, #0 has 38subjects. And 36 segements.
+Task Loader, #1 has 38subjects. And 4 segements.
+Task Loader, #2 has 38subjects. And 5 segements.
+creating milkywayoriginal loaders...
+Task Loader, #0 has 0subjects. And 20 segements.
+Task Loader, #1 has 0subjects. And 2 segements.
+Task Loader, #2 has 0subjects. And 4 segements.
+creating slumlordreach loaders...
+Task Loader, #0 has 17subjects. And 48 segements.
+Task Loader, #1 has 17subjects. And 6 segements.
+Task Loader, #2 has 17subjects. And 6 segements.
+creating notthefallintact loaders...
+Task Loader, #0 has 54subjects. And 28 segements.
+Task Loader, #1 has 54subjects. And 3 segements.
+Task Loader, #2 has 54subjects. And 5 segements.
+creating 21styear loaders...
+Task Loader, #0 has 25subjects. And 177 segements.
+Task Loader, #1 has 25subjects. And 22 segements.
+Task Loader, #2 has 25subjects. And 23 segements.
+creating bronx loaders...
+Task Loader, #0 has 47subjects. And 28 segements.
+Task Loader, #1 has 47subjects. And 3 segements.
+Task Loader, #2 has 47subjects. And 4 segements.
+creating black loaders...
+Task Loader, #0 has 46subjects. And 42 segements.
+Task Loader, #1 has 46subjects. And 5 segements.
+Task Loader, #2 has 46subjects. And 6 segements.
+creating forgot loaders...
+Task Loader, #0 has 46subjects. And 44 segements.
+Task Loader, #1 has 46subjects. And 5 segements.
+Task Loader, #2 has 46subjects. And 6 segements.
+/home/wsm32/.conda/envs/tcae/lib/python3.12/site-packages/torch/nn/modules/linear.py:125: UserWarning: Attempting to run cuBLAS, but there was no current CUDA context! Attempting to set the primary context... (Triggered internally at /opt/conda/conda-bld/pytorch_1729647378361/work/aten/src/ATen/cuda/CublasHandlePool.cpp:135.)
+  return F.linear(input, self.weight, self.bias)
+Epoch[0][0/1068]	Time 0.000 (0.000)	Loss 2.6313 (2.6313)	Acc 0.0000 (0.0000)
+Epoch[0][10/1068]	Time 0.360 (0.208)	Loss 0.9455 (0.8054)	Acc 2.5203 (2.0421)
+Epoch[0][20/1068]	Time 0.299 (0.192)	Loss 0.8018 (0.6014)	Acc 2.5725 (2.7228)
+Epoch[0][30/1068]	Time 0.274 (0.227)	Loss 0.7431 (0.6569)	Acc 2.6050 (1.9183)
+Epoch[0][40/1068]	Time 0.259 (0.218)	Loss 0.7122 (0.6600)	Acc 2.5945 (2.1040)
+Epoch[0][50/1068]	Time 0.250 (0.203)	Loss 0.6906 (0.5554)	Acc 2.6148 (3.3416)
+Epoch[0][60/1068]	Time 0.245 (0.217)	Loss 0.6746 (0.5930)	Acc 2.6467 (2.6609)
+Epoch[0][70/1068]	Time 0.244 (0.241)	Loss 0.6658 (0.5810)	Acc 2.6156 (2.7847)
+Epoch[0][80/1068]	Time 0.242 (0.203)	Loss 0.6563 (0.5428)	Acc 2.6418 (3.6510)
+Epoch[0][90/1068]	Time 0.242 (0.230)	Loss 0.6480 (0.5814)	Acc 2.6616 (2.8465)
+Epoch[0][100/1068]	Time 0.241 (0.239)	Loss 0.6401 (0.5736)	Acc 2.6958 (2.8465)
+Epoch[0][110/1068]	Time 0.240 (0.201)	Loss 0.6330 (0.5524)	Acc 2.7295 (3.2797)
+Epoch[0][120/1068]	Time 0.238 (0.226)	Loss 0.6302 (0.6212)	Acc 2.7110 (2.2896)
+Epoch[0][130/1068]	Time 0.236 (0.229)	Loss 0.6287 (0.6316)	Acc 2.6992 (2.2277)
+Epoch[0][140/1068]	Time 0.235 (0.198)	Loss 0.6271 (0.5869)	Acc 2.6859 (2.6609)
+Epoch[0][150/1068]	Time 0.235 (0.233)	Loss 0.6236 (0.6448)	Acc 2.6982 (1.9802)
+Epoch[0][160/1068]	Time 0.234 (0.223)	Loss 0.6210 (0.5651)	Acc 2.7066 (3.0322)
+Epoch[0][170/1068]	Time 0.234 (0.221)	Loss 0.6187 (0.5763)	Acc 2.7112 (2.7847)
+Epoch[0][180/1068]	Time 0.233 (0.217)	Loss 0.6162 (0.5872)	Acc 2.7187 (2.5990)
+Epoch[0][190/1068]	Time 0.234 (0.245)	Loss 0.6151 (0.5858)	Acc 2.7124 (2.9703)
+Epoch[0][200/1068]	Time 0.233 (0.215)	Loss 0.6137 (0.6307)	Acc 2.7105 (1.9802)
+Epoch[0][210/1068]	Time 0.234 (0.252)	Loss 0.6117 (0.5216)	Acc 2.7151 (3.0322)
+Epoch[0][220/1068]	Time 0.233 (0.234)	Loss 0.6088 (0.5622)	Acc 2.7222 (2.9703)
+Epoch[0][230/1068]	Time 0.233 (0.236)	Loss 0.6077 (0.5956)	Acc 2.7190 (2.4752)
+Epoch[0][240/1068]	Time 0.233 (0.215)	Loss 0.6071 (0.6546)	Acc 2.7174 (1.9802)
+Epoch[0][250/1068]	Time 0.232 (0.213)	Loss 0.6067 (0.7171)	Acc 2.7141 (1.5470)
+Epoch[0][260/1068]	Time 0.232 (0.219)	Loss 0.6057 (0.6057)	Acc 2.7173 (2.4134)
+Epoch[0][270/1068]	Time 0.232 (0.233)	Loss 0.6051 (0.5294)	Acc 2.7164 (3.6510)
+Epoch[0][280/1068]	Time 0.233 (0.222)	Loss 0.6051 (0.6107)	Acc 2.7113 (2.5371)
+Epoch[0][290/1068]	Time 0.233 (0.229)	Loss 0.6046 (0.5626)	Acc 2.7126 (2.9703)
+Epoch[0][300/1068]	Time 0.233 (0.205)	Loss 0.6043 (0.4840)	Acc 2.7102 (4.3317)
+Epoch[0][310/1068]	Time 0.232 (0.216)	Loss 0.6036 (0.5769)	Acc 2.7146 (3.0322)
+Epoch[0][320/1068]	Time 0.232 (0.206)	Loss 0.6029 (0.5776)	Acc 2.7168 (2.7847)
+Epoch[0][330/1068]	Time 0.232 (0.213)	Loss 0.6033 (0.5618)	Acc 2.7088 (2.9703)
+Epoch[0][340/1068]	Time 0.232 (0.223)	Loss 0.6027 (0.5552)	Acc 2.7110 (3.1559)
+Epoch[0][350/1068]	Time 0.232 (0.226)	Loss 0.6026 (0.5961)	Acc 2.7041 (2.5371)
+Epoch[0][360/1068]	Time 0.232 (0.229)	Loss 0.6020 (0.5582)	Acc 2.7051 (3.0322)
+Epoch[0][370/1068]	Time 0.232 (0.243)	Loss 0.6019 (0.6018)	Acc 2.7009 (2.5371)
+Epoch[0][380/1068]	Time 0.232 (0.243)	Loss 0.6012 (0.6023)	Acc 2.7065 (2.3515)
+Epoch[0][390/1068]	Time 0.232 (0.230)	Loss 0.6013 (0.5784)	Acc 2.6998 (2.7228)
+Epoch[0][400/1068]	Time 0.233 (0.215)	Loss 0.6010 (0.5872)	Acc 2.7030 (2.6609)
+Epoch[0][410/1068]	Time 0.232 (0.224)	Loss 0.6007 (0.6413)	Acc 2.7026 (1.9802)
+Epoch[0][420/1068]	Time 0.232 (0.238)	Loss 0.6009 (0.7058)	Acc 2.6963 (1.4851)
+Epoch[0][430/1068]	Time 0.232 (0.202)	Loss 0.6007 (0.6583)	Acc 2.6992 (1.9183)
+Epoch[0][440/1068]	Time 0.232 (0.235)	Loss 0.6003 (0.5754)	Acc 2.6986 (2.6609)
+Epoch[0][450/1068]	Time 0.232 (0.241)	Loss 0.5993 (0.5205)	Acc 2.6999 (3.4653)
+Epoch[0][460/1068]	Time 0.232 (0.238)	Loss 0.5988 (0.5850)	Acc 2.6950 (2.3515)
+Epoch[0][470/1068]	Time 0.232 (0.225)	Loss 0.5984 (0.6730)	Acc 2.6964 (2.0421)
+Epoch[0][480/1068]	Time 0.232 (0.191)	Loss 0.5975 (0.5860)	Acc 2.7003 (2.4752)
+Epoch[0][490/1068]	Time 0.232 (0.223)	Loss 0.5972 (0.5509)	Acc 2.7025 (2.7847)
+Epoch[0][500/1068]	Time 0.232 (0.206)	Loss 0.5968 (0.5489)	Acc 2.6965 (2.4134)
+Epoch[0][510/1068]	Time 0.231 (0.242)	Loss 0.5961 (0.5458)	Acc 2.6965 (2.4134)
+Epoch[0][520/1068]	Time 0.232 (0.193)	Loss 0.5955 (0.5966)	Acc 2.6945 (2.2277)
+Epoch[0][530/1068]	Time 0.232 (0.246)	Loss 0.5945 (0.5499)	Acc 2.6963 (2.7228)
+Epoch[0][540/1068]	Time 0.232 (0.190)	Loss 0.5939 (0.5102)	Acc 2.6975 (3.3416)
+Epoch[0][550/1068]	Time 0.232 (0.242)	Loss 0.5935 (0.5514)	Acc 2.6954 (2.2896)
+Epoch[0][560/1068]	Time 0.232 (0.199)	Loss 0.5928 (0.5725)	Acc 2.6963 (2.5371)
+Epoch[0][570/1068]	Time 0.232 (0.227)	Loss 0.5918 (0.5914)	Acc 2.7043 (3.2797)
+Epoch[0][580/1068]	Time 0.232 (0.216)	Loss 0.5913 (0.5283)	Acc 2.7055 (3.2797)
+Epoch[0][590/1068]	Time 0.231 (0.199)	Loss 0.5909 (0.5642)	Acc 2.7040 (2.8465)
+Epoch[0][600/1068]	Time 0.232 (0.210)	Loss 0.5908 (0.6056)	Acc 2.6999 (1.9183)
+Epoch[0][610/1068]	Time 0.231 (0.240)	Loss 0.5906 (0.6277)	Acc 2.6966 (1.9183)
+Epoch[0][620/1068]	Time 0.231 (0.240)	Loss 0.5904 (0.5371)	Acc 2.6942 (3.0322)
+Epoch[0][630/1068]	Time 0.231 (0.224)	Loss 0.5900 (0.5281)	Acc 2.6935 (3.0322)
+Epoch[0][640/1068]	Time 0.231 (0.229)	Loss 0.5894 (0.5352)	Acc 2.6969 (2.9703)
+Epoch[0][650/1068]	Time 0.231 (0.224)	Loss 0.5890 (0.6039)	Acc 2.6940 (2.1040)
+Epoch[0][660/1068]	Time 0.231 (0.214)	Loss 0.5889 (0.6681)	Acc 2.6926 (1.9183)
+Epoch[0][670/1068]	Time 0.231 (0.238)	Loss 0.5889 (0.5796)	Acc 2.6918 (2.3515)
+Epoch[0][680/1068]	Time 0.231 (0.211)	Loss 0.5888 (0.6754)	Acc 2.6882 (1.2376)
+Epoch[0][690/1068]	Time 0.231 (0.206)	Loss 0.5885 (0.6041)	Acc 2.6909 (2.6609)
+Epoch[0][700/1068]	Time 0.231 (0.211)	Loss 0.5879 (0.6323)	Acc 2.6923 (1.9183)
+Epoch[0][710/1068]	Time 0.231 (0.213)	Loss 0.5879 (0.6801)	Acc 2.6904 (1.8564)
+Epoch[0][720/1068]	Time 0.231 (0.231)	Loss 0.5876 (0.5754)	Acc 2.6891 (2.6609)
+Epoch[0][730/1068]	Time 0.231 (0.261)	Loss 0.5872 (0.5034)	Acc 2.6892 (3.4653)
+Epoch[0][740/1068]	Time 0.231 (0.189)	Loss 0.5870 (0.5545)	Acc 2.6866 (2.4134)
+Epoch[0][750/1068]	Time 0.231 (0.238)	Loss 0.5864 (0.5403)	Acc 2.6906 (2.9703)
+Epoch[0][760/1068]	Time 0.230 (0.201)	Loss 0.5860 (0.5764)	Acc 2.6900 (2.2896)
+Epoch[0][770/1068]	Time 0.231 (0.239)	Loss 0.5856 (0.5282)	Acc 2.6901 (3.0322)
+Epoch[0][780/1068]	Time 0.230 (0.189)	Loss 0.5851 (0.5603)	Acc 2.6912 (2.2896)
+Epoch[0][790/1068]	Time 0.230 (0.216)	Loss 0.5847 (0.5774)	Acc 2.6905 (2.3515)
+Epoch[0][800/1068]	Time 0.230 (0.193)	Loss 0.5847 (0.5328)	Acc 2.6899 (2.9703)
+Epoch[0][810/1068]	Time 0.230 (0.247)	Loss 0.5844 (0.6526)	Acc 2.6892 (1.7946)
+Epoch[0][820/1068]	Time 0.231 (0.239)	Loss 0.5841 (0.5379)	Acc 2.6891 (3.1559)
+Epoch[0][830/1068]	Time 0.231 (0.179)	Loss 0.5840 (0.5900)	Acc 2.6864 (2.1040)
+Epoch[0][840/1068]	Time 0.231 (0.234)	Loss 0.5836 (0.5733)	Acc 2.6886 (2.9084)
+Epoch[0][850/1068]	Time 0.231 (0.199)	Loss 0.5835 (0.5761)	Acc 2.6871 (3.0941)
+Epoch[0][860/1068]	Time 0.231 (0.193)	Loss 0.5832 (0.5372)	Acc 2.6865 (2.9084)
+Epoch[0][870/1068]	Time 0.230 (0.237)	Loss 0.5831 (0.5274)	Acc 2.6836 (2.9084)
+Epoch[0][880/1068]	Time 0.230 (0.247)	Loss 0.5827 (0.5000)	Acc 2.6861 (3.6510)
+Epoch[0][890/1068]	Time 0.230 (0.233)	Loss 0.5822 (0.6720)	Acc 2.6876 (1.9802)
+Epoch[0][900/1068]	Time 0.230 (0.250)	Loss 0.5821 (0.5133)	Acc 2.6853 (2.8465)
+Epoch[0][910/1068]	Time 0.230 (0.223)	Loss 0.5816 (0.5307)	Acc 2.6883 (2.8465)
+Epoch[0][920/1068]	Time 0.230 (0.410)	Loss 0.5817 (0.5538)	Acc 2.6863 (2.6609)
+Epoch[0][930/1068]	Time 0.230 (0.187)	Loss 0.5815 (0.6329)	Acc 2.6885 (1.7946)
+Epoch[0][940/1068]	Time 0.230 (0.204)	Loss 0.5810 (0.5066)	Acc 2.6922 (3.0322)
+Epoch[0][950/1068]	Time 0.230 (0.239)	Loss 0.5809 (0.5807)	Acc 2.6914 (2.2896)
+Epoch[0][960/1068]	Time 0.230 (0.250)	Loss 0.5806 (0.5652)	Acc 2.6926 (2.7228)
+Epoch[0][970/1068]	Time 0.230 (0.234)	Loss 0.5803 (0.5208)	Acc 2.6943 (2.5990)
+Epoch[0][980/1068]	Time 0.230 (0.235)	Loss 0.5802 (0.5994)	Acc 2.6927 (2.2896)
+Epoch[0][990/1068]	Time 0.230 (0.242)	Loss 0.5800 (0.5859)	Acc 2.6932 (2.5990)
+Epoch[0][1000/1068]	Time 0.230 (0.222)	Loss 0.5799 (0.5866)	Acc 2.6924 (2.1040)
+Epoch[0][1010/1068]	Time 0.230 (0.235)	Loss 0.5796 (0.4855)	Acc 2.6938 (3.5272)
+Epoch[0][1020/1068]	Time 0.230 (0.217)	Loss 0.5795 (0.5584)	Acc 2.6933 (2.7847)
+Epoch[0][1030/1068]	Time 0.230 (0.241)	Loss 0.5794 (0.5393)	Acc 2.6931 (3.3416)
+Epoch[0][1040/1068]	Time 0.230 (0.387)	Loss 0.5792 (0.5405)	Acc 2.6934 (2.7228)
+Epoch[0][1050/1068]	Time 0.230 (0.237)	Loss 0.5789 (0.5558)	Acc 2.6955 (2.5371)
+Epoch[0][1060/1068]	Time 0.230 (0.216)	Loss 0.5787 (0.5654)	Acc 2.6962 (2.4752)
+Train Time 628.7125952839851 	 Train Loss 0.578743848852004
+Traceback (most recent call last):
+  File "/gpfs/gibbs/project/frank/wsm32/wsm_thesis_scratch/narratives/code/fMRI-Embedding-narratives/rt_main.py", line 123, in <module>
+    policy()
+  File "/gpfs/gibbs/project/frank/wsm32/wsm_thesis_scratch/narratives/code/fMRI-Embedding-narratives/train_frame.py", line 638, in __call__
+    return self.train()
+           ^^^^^^^^^^^^
+  File "/gpfs/gibbs/project/frank/wsm32/wsm_thesis_scratch/narratives/code/fMRI-Embedding-narratives/train_frame.py", line 645, in train
+    val_loss, val_time = self.evaluate_epoch()
+                         ^^^^^^^^^^^^^^^^^^^^^
+  File "/gpfs/gibbs/project/frank/wsm32/wsm_thesis_scratch/narratives/code/fMRI-Embedding-narratives/train_frame.py", line 752, in evaluate_epoch
+    pos_input[1:len(label)+1] = label
+    ~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/home/wsm32/.conda/envs/tcae/lib/python3.12/site-packages/torch/_tensor.py", line 1151, in __array__
+    return self.numpy().astype(dtype, copy=False)
+           ^^^^^^^^^^^^
+TypeError: can't convert cuda:0 device type tensor to numpy. Use Tensor.cpu() to copy the tensor to host memory first.
