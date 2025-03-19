@@ -6,8 +6,9 @@ import argparse, pathlib
 import random
 import torch
 import numpy as np
-from train_frame import Trainer, POS_Predictor_Trainer, Predictor_Tester
+from train_frame import Trainer, POS_Predictor_Trainer, Predictor_Tester, LM_Pretrainer_New
 from data_module import Volume_Data_Module, HCP_Volume_Data_Module
+from lm_datamodule import LM_Data_Module
 torch.backends.cudnn.enabled = False
 from randomtime_data import RT_Narrative_Data_Module
 
@@ -78,11 +79,13 @@ if __name__ == "__main__":
 
     parser.add_argument('--checkpoint', type=str, help='Path to an existing checkpoint. Used along with "--resume"') #If predictor model has been training, load from here
     parser.add_argument('--encoder_base', type=str, help='Path to an existing encoder base.') 
+    parser.add_argument('--decoder_base', type=str, help='Path to an existing decoder base.') 
 
     parser.add_argument('--seed', default=0, type=int, help='Seed for random number generators')
 
     parser.add_argument('--test', action='store_true')
     parser.add_argument('--freeze', action='store_true')
+    parser.add_argument('--thaw_crossattention', action='store_true')
     parser.add_argument('--language_only', action='store_true')
 
 
@@ -115,13 +118,13 @@ if __name__ == "__main__":
                                             delay = args.bold_delay,
                                             segment_length = args.seg_length)
     else:
-        data_module = LM_Data_Module("/home/wsm32/project/wsm_thesis_scratch/narratives/h5_lm/wikitext_udpos_vectors")
+        data_module = LM_Data_Module("/home/wsm32/project/wsm_thesis_scratch/narratives/h5_lm/wikitext_udpos_vectors", args.num_workers, args.batch_size)
                                         
 
     if args.test:
         policy = Predictor_Tester(args, data_module, args.exp_dir)
     elif args.lm_pretrain:
-        policy = LM_Pretrainer(args, data_module)
+        policy = LM_Pretrainer_New(args, data_module)
     elif args.predict:
         print('Train the Predictor')
         policy = POS_Predictor_Trainer(args, data_module)

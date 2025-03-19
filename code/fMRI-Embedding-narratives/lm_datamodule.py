@@ -18,18 +18,20 @@ from utils import pos_tags
 class LM_Dataset(torch.utils.data.Dataset):
     def __init__(self, filename):
         self.file = h5py.File(filename,'r')
-        self.group = file["pos_vectors"]
-        self.sorted_keys = sorted(group.keys(), key=lambda x: int(x.split('_')[1]))
-        self.size = len(sorted_keys)
+        self.group = self.file["pos_vectors"]
+        self.sorted_keys = sorted(self.group.keys(), key=lambda x: int(x.split('_')[1]))
+        self.size = len(self.sorted_keys)
     def __len__(self):
         return self.size
     def __getitem__(self, i: int):
-        key = sorted_keys[i]
+        key = self.sorted_keys[i]
         return self.group[key][()]
 
 class LM_Data_Module(): #for random time splits
-    def __init__(self, base_name):
-        self.train_name = base_name + ".h5"
+    def __init__(self, base_name, num_workers, batch_size):
+        self.train_name = base_name + "_train.h5"
+        self.num_workers = num_workers
+        self.batch_size = batch_size
         self.val_name = base_name + "_validation.h5"
         self.test_name = base_name + "_test.h5"
 
@@ -72,6 +74,6 @@ class LM_Data_Module(): #for random time splits
     def _create_datasets(self):
         train = LM_Dataset(self.train_name)
         val = LM_Dataset(self.val_name)
-        train = LM_Dataset(self.test_name)
+        test = LM_Dataset(self.test_name)
         
         return train, val, test

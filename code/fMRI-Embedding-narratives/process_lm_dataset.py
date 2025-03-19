@@ -146,5 +146,6 @@ def process_and_save(split_name):
     print(f"Processing complete. Data saved to {output_file}")
 
 # Process validation and test splits
+process_and_save("train")
 process_and_save("validation")
 process_and_save("test")

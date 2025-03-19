@@ -56,12 +56,21 @@ class POS_predictor(nn.Module):
         self.encoder.load_state_dict(state_dict)
         return 1
 
+    def initialize_decoder_weights(self,checkpoint_file):
+        state_dict = torch.load(checkpoint_file)['model']
+        state_dict = {k.replace("module.decoder.", ""): v for k, v in state_dict.items()}
+        state_dict = {k: v for k, v in state_dict.items() if not "encoder" in k}
+        self.decoder.load_state_dict(state_dict)
+        return 1
+
     def forward(self, trs, pos_tokens):
         #print(f"trs shape: {trs.shape}")
         #print(f"pos_tokens shape: {pos_tokens.shape}")
         mem = self.encoder(trs, None)
         return self.decoder(pos_tokens, mem)
 
+
+#No point in this next class? Why did I write this?
 
 class No_Scans_POS_Decoder(nn.Module):
     """
@@ -103,4 +112,6 @@ class No_Scans_POS_Decoder(nn.Module):
         return x
 
     def initialize_encoder_weights(self,checkpoint_file):
+        return 1 # just since this may be called still
+    def initialize_decoder_weights(self,checkpoint_file):
         return 1 # just since this may be called still

@@ -91,6 +91,9 @@ class RT_Narrative_Data_Module(): #for random time splits
         train_data, val_data, test_data = self._create_datasets()
         pf = 2 if self.num_workers > 0 else None
 
+        for i in [train_data, val_data, test_data]:
+            print(i.__len__())
+
 
         train_loader = torch.utils.data.DataLoader(
             dataset=train_data,
