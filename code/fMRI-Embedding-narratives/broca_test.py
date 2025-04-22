@@ -9,7 +9,7 @@ import os
 lh_f = "/home/wsm32/project/wsm_thesis_scratch/narratives/fs6_transfer/label/lh.aparc.a2009s.annot"
 rh_f = "/home/wsm32/project/wsm_thesis_scratch/narratives/fs6_transfer/label/rh.aparc.a2009s.annot"
 region_dict = load_annot_to_binary_dict(lh_f, rh_f)
-brocas = ["L_G_front_inf-Opercular", "L_G_front_inf-Triangul"]
+brocas = ["L_G_temp_sup-Lateral","L_G_temp_sup-Plan_tempo","L_G_temp_sup-Plan_polar","L_G_temp_sup-G_T_transv"]
 #use a boolean OR to combine all regions in brocas
 broca_map = reduce(np.bitwise_or, [region_dict[region] for region in brocas])
 print(np.sum(broca_map))
